@@ -1,0 +1,388 @@
+  ImageRouter
+        // [ ] - ADD ACCESS CONTROL MIDDLEWARE
+        .get('/', (request, response) => {
+
+            // Database
+            //     .executeQuery(
+            //         ImageDb
+            //             .insert(
+            //                 Columns,
+            //                 [
+            //                     "'userRx3045'",
+            //                     "'Citizenship Front_20220527_349146185'",
+            //                     "'jpg'",
+            //                     "'/storage/userRx3045/images/Citizenship Front_20220527_349146185.jpg'",
+            //                     "'image'",
+            //                     "'0.39 MB'"
+            //                 ]
+            //             )
+            //             .build(),
+            //         response => {
+            //             // Insert Success Has error null and rows undefined;
+            //         }
+            //     )
+
+
+            let Payload = {
+                success: false,
+                status: "error",
+                result: "userId or imageId is missing",
+            },
+                statusCode = 400,
+                statusMessage = "Bad Request";
+            // Checking if Query Includes ImageId and UserId
+            if (request.query != null) {
+                const
+                    DirPath = `.\\storage\\${request.query['userId']}\\`;
+
+                // Query userId and imageId on Database
+                Database
+                    .executeQuery(
+                        ImageDb
+                            .select(QueryBuilder.selectType.ALL)
+                            .where(`UserId = '${request.query['userId']}' ${request.query['imageId'] != null ? `AND ImageId = '${request.query['imageId']}'` : ""}`)
+                            .build(),
+                        data => {
+                            // Insert Success Has error null and rows undefined;
+                            if (data.rows != null) {
+                                Payload.success = true;
+                                Payload.status = "success";
+                                Payload.result = data.rows;
+                                statusCode = 200;
+                                statusMessage = "OK";
+                            } else {
+                                Payload.success = false;
+                                Payload.status = "success";
+                                Payload.result = [];
+                                statusCode = 200;
+                                statusMessage = "OK";
+                            }
+
+                            if (data.error) {
+                                Payload.success = false;
+                                Payload.status = "error";
+                                Payload.result = "Invalid Request";
+                                statusCode = 404;
+                                statusMessage = "Bad Request";
+                            }
+                        }
+                    )
+
+                // Check if Directory Exists
+                // Check if File exists
+
+            }
+            setTimeout(() => {
+                // Logging the response
+                ResponseLogger.log(`📶 [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                // Sending the response
+                response.status(statusCode).send(Payload);
+            }, 1000);
+        })
+        /**
+        * @swagger
+        * /api/image/scanFiles/{userId}:
+        *  get:
+        *      summary: Retrieves the list of all files in the system of specified user
+        *      tags: [Image]
+        *      parameters:
+        *          - in: path
+        *            name: userId
+        *            schema:
+        *              type: string
+        *            required: true
+        *            description: The userId of the user
+        *      responses:
+        *          200:
+        *              description: Successfully Fetched Image
+        *              content:
+        *                  application/json:
+        *                      schema:
+        *                          type: object
+        *                          properties:
+        *                              success:
+        *                                  type: boolean
+        *                                  example: true
+        *                              status:
+        *                                  type: string
+        *                                  example: success
+        *                              result:
+        *                                  type: object
+        *                                  example: 
+        *                                      {
+        *                                      userId: "...",
+        *                                      types: ["image", "avatar"],
+        *                                      files: {
+        *                                                 list: [...],
+        *                                                 count: 0
+        *                                             },
+        *                                             avatars: {
+        *                                                 list: [...],
+        *                                                 count: 0
+        *                                             },
+        *                                             images: {
+        *                                                 list: [...],
+        *                                                 count: 0
+        *                                             }
+        *                                      }
+        * 
+        */
+        // [ ] - ADD ACCESS CONTROL MIDDLEWARE
+        .get("/scanFiles/:userId", (request, response) => {
+            let Payload = {
+                success: false,
+                status: "error",
+                result: "Invalid UserId.",
+            },
+                statusCode = 400,
+                statusMessage = "Bad Request";
+            // Checking if the userId is Available
+            if (request.params.userId !== undefined) {
+                const
+                    ReplacePath = `storage\\${request.params['userId']}\\`,
+                    Path = `.\\${ReplacePath}`
+                    ;
+                // Dir Exists Check
+                if (FileSystem.dir_exists(Path)) {
+                    const userImages = FileSystem.scan_dir_recursive(Path);
+                    // Stripping Details from the userImages
+                    let FinalImages = [];
+                    if (userImages.length > 0)
+                        userImages.forEach(image => {
+                            FinalImages.push(image.replace(ReplacePath, ""));
+                        })
+                    // Checking if the user has any images in the system
+                    if (FinalImages.code == undefined && FinalImages.length > 0) {
+                        Payload.success = true;
+                        Payload.status = "success";
+                        Payload.result = {
+                            userId: request.params['userId'],
+                            types: ["image", "avatar"],
+                            avatars: {
+                                list: FinalImages.filter(image => image.includes("avatar")),
+                                count: FinalImages.filter(image => image.includes("avatar")).length
+                            },
+                            images: {
+                                list: FinalImages.filter(image => image.includes("image")),
+                                count: FinalImages.filter(image => image.includes("image")).length
+                            }
+                        }
+                        statusCode = 200;
+                        statusMessage = "OK";
+                    }
+                    else {
+                        Payload.success = true;
+                        Payload.status = "success";
+                        Payload.result = {
+                            userId: request.params['userId'],
+                            types: ["image", "avatar"],
+                            files: { list: [], count: 0 },
+                            avatars: { list: [], count: 0 },
+                            images: { list: [], count: 0 }
+                        }
+                        statusCode = 200;
+                        statusMessage = "OK";
+                    }
+                }
+            } else {
+                Payload.success = false;
+                Payload.status = "error";
+                Payload.result = "UserId is required";
+                statusMessage = "Bad Request";
+                statusCode = 400;
+            }
+            // Logging the response
+            ResponseLogger.log(`📶 [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+            // Sending the response
+            response.status(statusCode).send(Payload);
+        })
+        /**
+         * @swagger
+         * /api/image/avatar:
+         *  post:
+         *      summary: Upload Avatar to ImageServer
+         *      tags: [Image]
+         *      requestBody:
+         *          content:
+         *              multipart/form-data:
+         *                  schema:
+         *                      type: object
+         *                      properties:
+         *                          image:
+         *                              type: string
+         *                              format: binary
+         *                              description: Avatar to be uploaded
+         *                              required: true
+         *                          userId:
+         *                              type: string
+         *                              description: UserId of the logged in user
+         *                              required: true
+         *                  encoding:
+         *                      image:
+         *                      contentType: image/*
+         *      responses:
+         *          200:
+         *              description: Successfully Uploaded Avatar
+         *              content:
+         *                  application/json:
+         *                      schema:
+         *                          type: object
+         *                      properties:
+         *                          success:
+         *                              type: bool
+         *                              description: success of the response
+         *                          status:
+         *                              type: string
+         *                              description: Status of the response
+         *                          result:
+         *                              type: string
+         *                              description: Message of the response
+         *                      example:
+         *                          success: true
+         *                          status: success
+         *                          result: Avatar Uploaded Successfully
+         */
+        // [ ] - ADD ACCESS CONTROL MIDDLEWARE
+        .post("/avatar", (request, response) => {
+            const
+                filesExists = typeof (request.files) == "object" && Object.keys(request.files).length != 0,
+                bodyExists = typeof (request.body) == "object" && Object.keys(request.body).length != 0;
+            let Payload = {
+                success: false,
+                status: "error",
+                result: "Avatar or UserId not found in the request.",
+            },
+                statusCode = 400,
+                statusMessage = "Bad Request";
+            // File and Body Both Exists
+            if (filesExists && bodyExists) {
+                /**
+                 * Images are retrieved here after validating the Extension and File Size,
+                 * if any of the validation fails image does not gets uploaded to temp directory 
+                 * So all I need to do is extract the image from the request.files object and move 
+                 * the image to [storage/avatar] directory according to the users id 
+                 */
+                // Image Directory To Store Image Data
+                const avatarDir = `${ServerConfig.image.storagePath} /${request.body['userId']}/avatar / `;
+                // Checking IF Image Directory Exists If Not Creating One
+                if (!FileSystem.dir_exists(avatarDir)) FileSystem.mkdir(avatarDir);
+                // Iterate Through each image in the request.files object and move the image to the avatarDir
+                request.files.forEach(file => {
+                    const File = FileSystem.dir_path(file.path) + "\\" + FileSystem.file_path(file.path);
+                    // Check if File Exists and Only Moving the file
+                    if (FileSystem.file_exists(File))
+                        FileSystem.move_file(
+                            // SOURCE FILE PATH
+                            File,
+                            // DESTINATION FILE PATH
+                            `${avatarDir} /${FileSystem.file_path(file.path)}`
+                        );
+                })
+                // If all the avatar are moved successfully then set the Payload to success
+                Payload.status = "success";
+                Payload.success = true;
+                Payload.result = "Avatar Uploaded Successfully";
+                statusCode = 200;
+                statusMessage = "OK";
+            }
+            // Logging the response
+            ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+            // Sending the response
+            response.status(statusCode).send(Payload);
+        })
+        /**
+        * @swagger
+        * /api/image/images:
+        *  post:
+        *      summary: Upload Image to ImageServer
+        *      tags: [Image]
+        *      requestBody:
+        *          content:
+        *              multipart/form-data:
+        *                  schema:
+        *                      type: object
+        *                      properties:
+        *                          image:
+        *                              type: array
+        *                              description: Images to be uploaded
+        *                              required: true
+        *                              items:
+        *                                  type: string
+        *                                  format: binary
+        *                          userId:
+        *                              type: string
+        *                              description: UserId of the logged in user
+        *                              required: true
+        *                  encoding:
+        *                      image:
+        *                      contentType: image/*
+        *      responses:
+        *          200:
+        *              description: Successfully Uploaded Image
+        *              content:
+        *                  application/json:
+        *                      schema:
+        *                          type: object
+        *                      properties:
+        *                          success:
+        *                              type: bool
+        *                              description: success of the response
+        *                          status:
+        *                              type: string
+        *                              description: Status of the response
+        *                          result:
+        *                              type: string
+        *                              description: Message of the response
+        *                      example:
+        *                          success: true
+        *                          status: success
+        *                          result: Image Uploaded Successfully
+        */
+        // [ ] - ADD ACCESS CONTROL MIDDLEWARE
+        .post("/images", (request, response) => {
+            const
+                filesExists = typeof (request.files) == "object" && Object.keys(request.files).length != 0,
+                bodyExists = typeof (request.body) == "object" && Object.keys(request.body).length != 0;
+            let Payload = {
+                success: false,
+                status: "error",
+                result: "Images or UserId not found in the request.",
+            },
+                statusCode = 400,
+                statusMessage = "Bad Request";
+            // File and Body Both Exists
+            if (filesExists && bodyExists) {
+                /**
+                 * Images is retrieved here after validating the Extension and File Size,
+                 * if any of the validation fails image does not gets uploaded to temp directory 
+                 * So all I need to do is extract the image from the request.files object and move 
+                 * the image to [storage/images] directory according to the users id 
+                 */
+                // Images Directory To Store Images Data
+                const imageDir = `${ServerConfig.image.storagePath}/${request.body['userId']}/images/`;
+                // Checking IF Image Directory Exists If Not Creating One
+                if (!FileSystem.dir_exists(imageDir)) FileSystem.mkdir(imageDir);
+                // Iterate Through each image in the request.files object and move the image to the imageDir
+                request.files.forEach(file => {
+                    const File = FileSystem.dir_path(file.path) + "\\" + FileSystem.file_path(file.path);
+                    // Check if File Exists and Only Moving the file
+                    if (FileSystem.file_exists(File))
+                        FileSystem.move_file(
+                            // SOURCE FILE PATH
+                            File,
+                            // DESTINATION FILE PATH
+                            `${imageDir}/${FileSystem.file_path(file.path)}`
+                        );
+                })
+                // If all the images are moved successfully then set the Payload to success
+                Payload.status = "success";
+                Payload.success = true;
+                Payload.result = "Images Uploaded Successfully";
+                statusCode = 200;
+                statusMessage = "OK";
+            }
+            // Logging the response
+            ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+            // Sending the response
+            response.status(statusCode).send(Payload);
+        })

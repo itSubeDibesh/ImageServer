@@ -1,0 +1,23 @@
+{
+    "definition": {
+        "openapi": "3.0.0",
+        "info": {
+            "title": "Image Server API",
+            "version": "1.0.0",
+            "description": "Registration System is a web application created in completion of Advanced CyberSecurity module and part of second Assignment of the module. This web application is developed to provide a registration system and demonstrate a good security approach to avoid the security issues.",
+            "contact": {
+                "name": "API Support",
+                "email": "dibeshrsubedi@gmail.com"
+            }
+        },
+        "servers": [
+            {
+                "url": "http://localhost:8080",
+                "description": "API Development Server"
+            }
+        ]
+    },
+    "apis": [
+        "backend/controllers/api/*.js"
+    ]
+}

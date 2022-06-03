@@ -1,0 +1,282 @@
+{
+    "Activities": [
+        {
+            "name": "Home",
+            "activityCode": "HOME",
+            "hasApi": false,
+            "method": [
+                "GET"
+            ],
+            "url": [
+                "/"
+            ],
+            "description": "Home Page",
+            "roleCode": "VISIT_WEBSITE"
+        },
+        {
+            "name": "About",
+            "activityCode": "ABOUT",
+            "hasApi": false,
+            "method": [
+                "GET"
+            ],
+            "url": [
+                "/about"
+            ],
+            "description": "About Page",
+            "roleCode": "VISIT_WEBSITE"
+        },
+        {
+            "name": "Contact",
+            "activityCode": "CONTACT",
+            "hasApi": false,
+            "method": [
+                "GET"
+            ],
+            "url": [
+                "/contact"
+            ],
+            "description": "Contact Page",
+            "roleCode": "VISIT_WEBSITE"
+        },
+        {
+            "name": "Password Analyzer",
+            "activityCode": "PASSWORD_ANALYZER",
+            "hasApi": false,
+            "method": [
+                "GET"
+            ],
+            "url": [
+                "/analyzer"
+            ],
+            "description": "Password Analyzer Page",
+            "roleCode": "VISIT_WEBSITE"
+        },
+        {
+            "name": "Login",
+            "activityCode": "LOGIN",
+            "hasApi": true,
+            "method": [
+                "GET",
+                "POST"
+            ],
+            "url": [
+                "/login",
+                "/api/auth/login"
+            ],
+            "description": "Login Page",
+            "roleCode": "ACCESS_ACCOUNT"
+        },
+        {
+            "name": "Register",
+            "activityCode": "REGISTER",
+            "hasApi": true,
+            "method": [
+                "GET",
+                "POST"
+            ],
+            "url": [
+                "/register",
+                "/api/auth/register"
+            ],
+            "description": "Register Page",
+            "roleCode": "ACCESS_ACCOUNT"
+        },
+        {
+            "name": "Forget Password",
+            "activityCode": "FORGET_PASSWORD",
+            "hasApi": true,
+            "method": [
+                "GET",
+                "POST"
+            ],
+            "url": [
+                "/forget",
+                "/api/auth/forget"
+            ],
+            "description": "Forget Password Page",
+            "roleCode": "ACCESS_ACCOUNT"
+        },
+        {
+            "name": "Reset Password",
+            "activityCode": "RESET_PASSWORD",
+            "hasApi": true,
+            "method": [
+                "GET",
+                "POST"
+            ],
+            "url": [
+                "/reset",
+                "/api/auth/reset"
+            ],
+            "description": "Reset Password Page",
+            "roleCode": "ACCESS_ACCOUNT"
+        },
+        {
+            "name": "User Verification",
+            "activityCode": "USER_VERIFICATION",
+            "hasApi": true,
+            "method": [
+                "GET",
+                "POST"
+            ],
+            "url": [
+                "/verification",
+                "/api/auth/verification"
+            ],
+            "description": "User Verification Page",
+            "roleCode": "ACCESS_ACCOUNT"
+        },
+        {
+            "name": "Delete User",
+            "activityCode": "DELETE_USER",
+            "hasApi": true,
+            "method": [
+                "POST"
+            ],
+            "url": [
+                "/api/user/delete"
+            ],
+            "description": "Delete User Page",
+            "roleCode": "HANDEL_USER"
+        },
+        {
+            "name": "Disable User",
+            "activityCode": "DISABLE_USER",
+            "hasApi": true,
+            "method": [
+                "POST"
+            ],
+            "url": [
+                "/api/user/disable"
+            ],
+            "description": "Disable User Page",
+            "roleCode": "HANDEL_USER"
+        },
+        {
+            "name": "Reset Request",
+            "activityCode": "RESET_REQUEST",
+            "hasApi": true,
+            "method": [
+                "POST"
+            ],
+            "url": [
+                "/api/user/reset_request"
+            ],
+            "description": "Reset Request",
+            "roleCode": "HANDEL_USER"
+        },
+        {
+            "name": "View Users",
+            "activityCode": "VIEW_USERS",
+            "hasApi": true,
+            "method": [
+                "GET",
+                "POST"
+            ],
+            "url": [
+                "/users",
+                "/api/user/view"
+            ],
+            "description": "View Users Page",
+            "roleCode": "HANDEL_USER"
+        },
+        {
+            "name": "Upload Image",
+            "activityCode": "UPLOAD_IMAGE",
+            "hasApi": true,
+            "method": [
+                "POST"
+            ],
+            "url": [
+                "/api/image/upload"
+            ],
+            "description": "Upload Image Page",
+            "roleCode": "HANDEL_IMAGE"
+        },
+        {
+            "name": "Delete Image",
+            "activityCode": "DELETE_IMAGE",
+            "hasApi": true,
+            "method": [
+                "POST"
+            ],
+            "url": [
+                "/api/image/delete"
+            ],
+            "description": "Delete Image Page",
+            "roleCode": "HANDEL_IMAGE"
+        },
+        {
+            "name": "View Image",
+            "activityCode": "VIEW_IMAGE",
+            "hasApi": true,
+            "method": [
+                "GET",
+                "POST"
+            ],
+            "url": [
+                "/image",
+                "/api/image/view"
+            ],
+            "description": "View Image Page",
+            "roleCode": "HANDEL_IMAGE"
+        }
+    ],
+    "Roles": [
+        {
+            "name": "Visit Website",
+            "roleCode": "VISIT_WEBSITE",
+            "groupCode": [
+                "GUEST",
+                "USER",
+                "ADMIN"
+            ],
+            "description": "Allows a user to visit the website"
+        },
+        {
+            "name": "Access Account",
+            "roleCode": "ACCESS_ACCOUNT",
+            "groupCode": [
+                "GUEST",
+                "USER",
+                "ADMIN"
+            ],
+            "description": "Allows a user to access the account"
+        },
+        {
+            "name": "Handel User",
+            "roleCode": "HANDEL_USER",
+            "groupCode": [
+                "ADMIN"
+            ],
+            "description": "Allows a user to handel user"
+        },
+        {
+            "name": "Handel Image",
+            "roleCode": "HANDEL_IMAGE",
+            "groupCode": [
+                "USER",
+                "ADMIN"
+            ],
+            "description": "Allows a user to handel image"
+        }
+    ],
+    "Groups": [
+        {
+            "name": "Guest",
+            "groupCode": "GUEST",
+            "description": "Guest Group provides Visit Website and Access Account permission"
+        },
+        {
+            "name": "User",
+            "groupCode": "USER",
+            "description": "User Group provides Visit Website, Access Account and Handel Image permission"
+        },
+        {
+            "name": "Admin",
+            "groupCode": "ADMIN",
+            "description": "Admin Group provides all permission"
+        }
+    ]
+}
