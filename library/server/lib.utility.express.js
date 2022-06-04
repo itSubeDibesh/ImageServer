@@ -1,5 +1,8 @@
 // Configuration Variable
-var isDatabaseSet = false, Database;
+var
+    isDatabaseSet = false,
+    Database
+    ;
 /**
  * @class Utility
  * @description This class is responsible for managing utility
@@ -7,6 +10,16 @@ var isDatabaseSet = false, Database;
  * @version 1.0.0
  */
 class Utility {
+    /**
+    * @description Importing Csrf
+    */
+    static Csurf = require('csurf')
+    /**
+     * A CSRF protection middleware used on Methods that require CSRF protection
+     * @static
+     * @memberof Utility
+     */
+    static csrfProtection = Utility.Csurf({ cookie: true, sameSite: 'strict', secure: true });
     /**
     * @description Importing Rate Limiter
     */
@@ -44,6 +57,14 @@ class Utility {
         return milliSeconds / 1000;
     }
     /**
+     * @description Converts Min to MilliSeconds
+     * @param {number} milliSeconds 
+     * @returns {number}
+     */
+    static minToMs = function (minutes) {
+        return minutes * 60 * 1000;
+    }
+    /**
       * @description Returns The Request Rate Limiter as per configuration -> use in Request header
       * @summary Allows to send max request within defined windowMs
       * @param {number} windowMs -( 1e3*60*15) in MilliSeconds 
@@ -58,9 +79,19 @@ class Utility {
             windowMs, // 15 minutes
             standardHeaders, // Return rate limit info in the `RateLimit-*` headers
             legacyHeaders, // Disable the `X-RateLimit-*` headers
-            message: {
-                status: 429,
-                message: `Too Many Requests, Please try again after ${msToS(windowMs) / 60} minutes.`
+            handler: function (request, response, options) {
+                let
+                    Payload = {
+                        success: false,
+                        status: "error",
+                        result: `Too Many Requests, Please try again after ${Utility.msToS(windowMs) / 60} minutes.`,
+                    },
+                    statusCode = 429,
+                    statusMessage = "Too Many Requests";
+                // Logging the response
+                Utility.ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                // Sending the response
+                response.status(statusCode).send(Payload);
             }
         })
     }
@@ -89,29 +120,25 @@ class Utility {
      * @static
      * @memberof Utility
      */
-    static ResponseLogger() {
-        return new Utility.FileLogger({
-            name: "Response",
-            logType: Utility.FileLogger.LogType.RESPONSE,
-            fileType: Utility.FileLogger.FileTypes.LOG,
-            maxSizeMb: Utility.ServerConfig.logger.maxLogSize,
-            isConsole: Utility.ServerConfig.logger.logInConsole
-        })
-    }
+    static ResponseLogger = new Utility.FileLogger({
+        name: "Response",
+        logType: Utility.FileLogger.LogType.RESPONSE,
+        fileType: Utility.FileLogger.FileTypes.LOG,
+        maxSizeMb: Utility.ServerConfig.logger.maxLogSize,
+        isConsole: Utility.ServerConfig.logger.logInConsole
+    })
     /**
      * This method holds Request Logger
      * @static
      * @memberof Utility
      */
-    static RequestLogger() {
-        return new Utility.FileLogger({
-            name: "Request",
-            logType: Utility.FileLogger.LogType.REQUEST,
-            fileType: Utility.FileLogger.FileTypes.LOG,
-            maxSizeMb: Utility.ServerConfig.logger.maxLogSize,
-            isConsole: Utility.ServerConfig.logger.logInConsole
-        })
-    }
+    static RequestLogger = new Utility.FileLogger({
+        name: "Request",
+        logType: Utility.FileLogger.LogType.REQUEST,
+        fileType: Utility.FileLogger.FileTypes.LOG,
+        maxSizeMb: Utility.ServerConfig.logger.maxLogSize,
+        isConsole: Utility.ServerConfig.logger.logInConsole
+    })
     /**
      * @description Holds Query Builder
      * @static

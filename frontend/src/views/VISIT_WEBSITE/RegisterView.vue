@@ -1,7 +1,7 @@
 <template>
     <div class="row">
         <div class="mb-3 col-sm-12 col-md-12 col-lg-6">
-            <div class="card">
+            <div class="card mb-3">
                 <div class="card-body"
                     :class="{ 'text-light bg-dark border-light': isDarkMode, 'text-dark bg-light border-dark': !isDarkMode }">
                     <div class="card-head mb-4">
@@ -9,7 +9,9 @@
                             <strong>Register</strong>
                         </h4>
                     </div>
-                    <form v-on:submit="onSubmit">
+                    <Alert :type="alertType" :showAlert="showAlert" :message="alertMessage" />
+                    <PreLoader v-if="showPreloader" :keepLoading="true" />
+                    <form v-on:submit="onSubmit" v-else>
                         <div class="form-floating text-dark mb-3">
                             <input type="text" class="form-control" id="fullname" placeholder="Full Name" required
                                 minlength="3" v-on:input="checkFullName">
@@ -106,11 +108,19 @@
 </template>
 
 <script>
+import PreLoader from '@/components/PreLoader.vue'
+import Alert from '@/components/Alert.vue';
+
 // Import Password Analyzer
-import PasswordAnalyzer from "../../../../library/lib.password.analyzer"
+import PasswordAnalyzer from "../../../../library/security/lib.password.analyzer"
 const Analyzer = new PasswordAnalyzer();
+
 export default {
     name: 'Register',
+    components: {
+        PreLoader,
+        Alert
+    },
     data() {
         return {
             images: {
@@ -123,7 +133,24 @@ export default {
             emailAccepted: false,
             fullNameAccepted: false,
             usernameAccepted: false,
+            CSRF: "",
+            showPreloader: false,
+            alertType: "",
+            showAlert: false,
+            alertMessage: ""
         }
+    },
+    mounted() {
+        fetch('/api/auth/csrf', {
+            method: 'GET',
+            credentials: 'same-origin'
+        }).then(response => {
+            if (response.status === 200) {
+                return response.json();
+            }
+        }).then(json => {
+            this.CSRF = json.result.CsrfToken;
+        });
     },
     methods: {
         onSubmit(event) {
@@ -141,7 +168,27 @@ export default {
                     email: document.getElementById('email').value,
                     password: document.getElementById('password').value
                 }
+                // Show Preloader on register button unless response if error hide preloader and show error in alert component
+                this.showPreloader = true;
                 // Make a request to register the user api
+                fetch('/api/auth/register', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': this.CSRF
+                    },
+                    body: JSON.stringify(Payload)
+                })
+                    .then(response => response.json())
+                    .then(json => {
+                        setTimeout(() => {
+                            this.showPreloader = false;
+                            this.alertType = json.status == "error" ? "danger" : json.status;
+                            this.alertMessage = json.result;
+                            this.showAlert = true;
+                        }, 2e3);
+                    });
             }
         },
         setProgress: (target) => (ariaValuenow, width, innerHTML) => {
@@ -176,8 +223,16 @@ export default {
                 if (totalPercentage >= 80) this.toggle(progressbar)('bg-warning', 'bg-success');
                 else if (totalPercentage >= 50) this.toggle(progressbar)('bg-danger', 'bg-warning');
                 else this.toggle(progressbar)('bg-success', 'bg-danger');
-
+                // Checking password accepted
                 this.passwordAccepted = features.acceptable;
+                const retype = document.getElementById('retype-password');
+                if (retype.value == event.target.value) {
+                    this.toggle(retype)('is-invalid', 'is-valid')
+                    this.passwordMatched = true;
+                } else {
+                    this.toggle(retype)('is-valid', 'is-invalid')
+                    this.passwordMatched = false;
+                }
                 // Show Messages
                 if (features.acceptable) {
                     this.toggle(event.target)('is-invalid', 'is-valid')
@@ -273,7 +328,8 @@ export default {
         isLoggedIn() {
             return this.$store.getters.loggedIn;
         },
-    }
+    },
+
 }
 
 </script>

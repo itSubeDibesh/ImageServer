@@ -81,7 +81,7 @@
 
 <script>
 // Importing Password Analyzer
-import PasswordAnalyzer from "../../../../library/lib.password.analyzer"
+import PasswordAnalyzer from "../../../../library/security/lib.password.analyzer"
 
 export default {
     name: 'Login',

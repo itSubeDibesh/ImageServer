@@ -20,7 +20,7 @@
 <script>
 export default {
     name: "PreLoader",
-    props: ["timeout", "width", "height", "keepLoading"],
+    props: ["timeout", "width", "height", "keepLoading", "appLoad"],
     data() {
         return {
             showPreloader: true,
@@ -28,10 +28,16 @@ export default {
         };
     },
     mounted() {
-        setTimeout(() => {
-            this.showPreloader = this.keepLoading || false;
-            this.$store.commit(this.showPreloader ? 'isLoading' : 'isNotLoading');
-        }, this.timeout);
+        if (this.appLoad)
+            setTimeout(() => {
+                this.showPreloader = this.keepLoading || false;
+                this.$store.commit(this.showPreloader ? 'isLoading' : 'isNotLoading');
+            }, this.timeout);
+        else if (this.timeout)
+            setTimeout(() => {
+                this.showPreloader = this.keepLoading || false;
+                this.$store.commit(this.showPreloader ? 'isLoading' : 'isNotLoading');
+            }, this.timeout);
     },
     computed: {
         isDarkMode() {

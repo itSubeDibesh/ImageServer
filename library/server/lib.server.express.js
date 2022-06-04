@@ -29,10 +29,6 @@ var
          */
         System: require('os'),
         /**
-         * @description Importing Csrf
-         */
-        Csurf: require('csurf'),
-        /**
          * @description Importing Express
          */
         Express: require('express'),
@@ -114,8 +110,8 @@ class Server {
                 isConsole: Configurations.Server.logger.logInConsole
             }
         )
-        this.Response = Utils.ResponseLogger();
-        this.Request = Utils.RequestLogger();
+        this.Response = Utils.ResponseLogger;
+        this.Request = Utils.RequestLogger;
         // Setting Express
         this.server = Express();
         return this;
@@ -173,7 +169,6 @@ class Server {
         this.isHttp = Config.server.isHttp;
         this.preventSqlInjection = Config.server.preventions.sqLInjection;
         this.enableAccessControl = Config.server.preventions.enableAccessControl;
-        this.enableCsurf = Config.server.preventions.enableCsrf;
         this.setRequestLimit = false;
         if (Config.server.preventions.limitRequest.state) {
             const { request, periodInMs } = Config.server.preventions.limitRequest.limit
@@ -210,7 +205,7 @@ class Server {
                     const payload = {
                         Security_Type: (req.secure ? 'Secured' : 'Unsecured').toUpperCase(),
                         Type: req.method, URL: `${req.protocol}://${req.headers.host}${req.url}`,
-                        IP: req.ip, HEADERS: req.headers
+                        IP: req.headers['x-forwarded-for'] || req.connection.remoteAddress, HEADERS: req.headers
                     };
                     // Log the request on JSON file
                     if (this.Logger.currentFileType === Packages.FileLogger.FileTypes.JSON) {
@@ -243,7 +238,7 @@ class Server {
                             })
                         }
                         // Inline Logging
-                        [this.Request, this.Logger].forEach(logger => logger.log(`📶 ${(req.secure ? 'Secured' : 'Unsecured').toUpperCase()} ${req.method} REQUEST ON ${req.protocol}://${req.headers.host}${req.url} FROM IP [${req.ip}] with HEADERS [${JSON.stringify(req.headers)}] ${typeof (req.body) == "object" && Object.keys(req.body).length != 0 ? 'and BODY [' + JSON.stringify(req.body) + ']' : ' '} ${typeof (req.files) == "object" && Object.keys(req.files).length != 0 ? 'and FILES [' + JSON.stringify(File) + ']' : ' '}`));
+                        [this.Request, this.Logger].forEach(logger => logger.log(`📶 ${(req.secure ? 'Secured' : 'Unsecured').toUpperCase()} ${req.method} REQUEST ON ${req.protocol}://${req.headers.host}${req.url} FROM IP [${req.headers['x-forwarded-for'] || req.connection.remoteAddress}] with HEADERS [${JSON.stringify(req.headers)}] ${typeof (req.body) == "object" && Object.keys(req.body).length != 0 ? 'and BODY [' + JSON.stringify(req.body) + ']' : ' '} ${typeof (req.files) == "object" && Object.keys(req.files).length != 0 ? 'and FILES [' + JSON.stringify(File) + ']' : ' '}`));
                     }
                     // Making other middleware calls
                     next();
@@ -362,7 +357,10 @@ class Server {
             const { ApiRouter, WebRouter } = require('../../backend/router');
             // API ROUTER CONFIGURATION
             this.Logger.log(`🛠 Configuring HTTP Routes`);
-            [ApiRouter, WebRouter].forEach(router =>
+            const Router = [ApiRouter];
+            if (this.isDevelopmentMode)
+                Router.push(WebRouter);
+            Router.forEach(router =>
                 // Instantiating and Configuring the Router
                 new router(this).setUpControllers());
         } else
@@ -400,6 +398,17 @@ class Server {
                 response
                     .status(404)
                     .send({ success: !1, status: 'error', result: 'Oops! Page not found!' });
+            })
+            // Handling CSRF Errors
+            .use((error, request, response, next) => {
+                this.Logger.log(`🐞 ${error.message} ${error.stack}\n`);
+                if (error.code === 'EBADCSRFTOKEN') {
+                    if (!this.isDevelopmentMode)
+                        this.Response.log(`✉ [403 Forbidden] with PAYLOAD [${JSON.stringify({ success: !1, status: 'error', result: 'Oops! Forbidden!' })}]`);
+                    response
+                        .status(403)
+                        .send({ success: !1, status: 'error', result: 'Oops! Request Forbidden, Un-authorized Request!' });
+                } else next();
             })
             // Handling 500 Errors
             .use((error, request, response, next) => {

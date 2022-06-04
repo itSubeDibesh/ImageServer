@@ -4,9 +4,6 @@ import './registerServiceWorker'
 import router from './router'
 import store from './store'
 
-// Jquery 
-// import $ from 'jquery'
-
 // FontAwesome Import
 import '@fortawesome/fontawesome-free/js/all.min';
 

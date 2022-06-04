@@ -1,20 +1,63 @@
 /**
  * @swagger
  * tags:
- *  name: Authentication
- *  description: Endpoint to handle Authentication related operations
+ *  name: Auth
+ *  description: Endpoint to handle Auth related operations
  *  url: /api/auth
  */
 
 const
     // Importing required modules
-    { Router, ExpressValidator, SHA_512, ResponseLogger } = require("../../../library/server/lib.utility.express"),
+    { Router, ExpressValidator, SHA_512, ResponseLogger, csrfProtection, setRequestLimiter, minToMs } = require("../../../library/server/lib.utility.express"),
     // Extracting Router from util
     AuthRouter = Router(),
     // Extracting ExpressValidator from util
     { check, validationResult } = ExpressValidator;
 
 AuthRouter
+    /** 
+     * @swagger
+     * /api/auth/csrf:
+     *  get:
+     *      summary: Get CSRF token
+     *      tags: [Auth]
+     *      responses:
+     *          200:
+     *              description: Successful response
+     *              content: 
+     *                  application/json:
+     *                      schema:
+     *                          type: object
+     *                          properties:
+     *                              success:
+     *                                  type: boolean
+     *                                  example: true  
+     *                              status:
+     *                                  type: string
+     *                                  example: success
+     *                              result:
+     *                                  type: object
+     *                                  example:
+     *                                         {
+     *                                              CsrfToken: "token"
+     *                                          }
+     */
+    .get("/csrf", csrfProtection, (request, response) => {
+        let
+            Payload = {
+                success: true,
+                status: "success",
+                result: {
+                    CsrfToken: request.csrfToken(),
+                },
+            },
+            statusCode = 200,
+            statusMessage = "Ok";
+        // Logging the response
+        ResponseLogger.log(`📶 [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+        // Sending the response
+        response.status(statusCode).send(Payload);
+    })
     .post("/login", (request, response) => {
         // Handle Login Request
         response.send({
@@ -22,8 +65,9 @@ AuthRouter
             message: "Welcome to SniperCode API",
         });
     })
-AuthRouter
     .post("/register",
+        // Checking for CSRF Token
+        csrfProtection,
         // Validation Check
         [
             check("username", "Username is required").notEmpty(),
@@ -34,8 +78,8 @@ AuthRouter
             check("email", "Email is not valid").isEmail(),
             check("fullname", "Fullname is required").notEmpty(),
         ],
-        // Setup Request Limit
-
+        // Setup Request Limit -> Requests per minute -> 3 request 10 minutes 
+        setRequestLimiter(minToMs(10), 3),
         // Request Handel
         (request, response) => {
             /** 
@@ -76,11 +120,14 @@ AuthRouter
              * -- INSERT INTO users (UserName,FullName,Email,PASSWORD,VerificationToken,VerificationStatus) VALUES --	('Dibesh199','Dibesh Raj Subedi','dibeshrsubedi@gmail.com','p@ssw0rd','token@123',false)
              * -- UPDATE users SET VerificationStatus = true , VerificationToken='' WHERE UserId = 1;
              * 
-             * Db Status : Working, Included
+             * Db Status : NO, Included -> Work on Frontend Timer and EMail Server
+             * 
              * InputRequestValidation: Working, Included
+             * CSRF: Working, Included
+             * Request Limit: Working, Included
+             * 
              * Hashing: no, Included
              * Auth Token: no, Not Included
-             * Request Limit: no, Included
              * Captcha: no, Included
              * 
              */
@@ -92,17 +139,21 @@ AuthRouter
                 statusCode = 400,
                 statusMessage = "Bad Request";
             // Error Check from Request
-            const RequestErrors = validationResult(request);
-            if (!RequestErrors.isEmpty()) {
+            if (!validationResult(request).isEmpty()) {
                 Payload.success = false;
                 Payload.status = "error";
-                Payload.result = RequestErrors.array();
+                Payload.result = "Username, Password, Email or Fullname not found in the request or might be invalid.";
                 statusCode = 400;
                 statusMessage = "Bad Request";
             }
             // When All Request Condition Satisfies
             else {
-
+                // Demo Success Response
+                Payload.success = true;
+                Payload.status = "success";
+                Payload.result = "User Registered Successfully, Please Verify Your Email!";
+                statusCode = 200;
+                statusMessage = "Ok";
             }
 
             // Logging the response
@@ -110,7 +161,6 @@ AuthRouter
             // Sending the response
             response.status(statusCode).send(Payload);
         })
-AuthRouter
     .post("/forget", (request, response) => {
         // Handle Forget Password Request
         response.send({
@@ -118,7 +168,6 @@ AuthRouter
             message: "Welcome to SniperCode API",
         });
     })
-AuthRouter
     .post("/reset", (request, response) => {
         // Handle Reset Password Request
         response.send({
@@ -126,7 +175,6 @@ AuthRouter
             message: "Welcome to SniperCode API",
         });
     })
-AuthRouter
     .post("/verification", (request, response) => {
         // Handle User Verification Request
         response.send({

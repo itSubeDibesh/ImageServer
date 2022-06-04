@@ -1,5 +1,5 @@
 <template>
-  <PreLoader v-if="showPreload" :width="'30%'" :timeout="15e2" />
+  <PreLoader v-if="showPreload" :timeout="15e2" :appLoad="true" style="margin:20%;" />
   <div v-else>
     <NavBar :title="title" v-on:changeMode="changeMode" v-on:isLoggedIn="isLoggedIn" />
     <div class="container" :class="{ 'mt-5 pt-5': isOnline, 'mt-3 pt-0': !isOnline }">
@@ -103,7 +103,7 @@ export default {
   },
   watch: {
     $route(to, from) {
-      // console.log(to, from)
+      console.log(to, from)
       this.title = to.meta.title;
       document.title = `${this.title} || Image Server` || "Image Server";
       if (this.title === undefined) {

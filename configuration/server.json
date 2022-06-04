@@ -18,7 +18,6 @@
         "preventions": {
             "sqLInjection": true,
             "enableAccessControl": true,
-            "enableCsrf": false,
             "limitRequest": {
                 "state": false,
                 "limit": {

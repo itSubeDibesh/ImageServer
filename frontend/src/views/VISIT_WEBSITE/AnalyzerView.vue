@@ -227,7 +227,7 @@
 <script>
 
 // Import Password Analyzer
-import PasswordAnalyzer from "../../../../library/lib.password.analyzer";
+import PasswordAnalyzer from "../../../../library/security/lib.password.analyzer";
 const Analyzer = new PasswordAnalyzer();
 export default {
     name: 'Analyzer',
