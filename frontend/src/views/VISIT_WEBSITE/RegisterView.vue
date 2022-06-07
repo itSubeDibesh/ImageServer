@@ -11,93 +11,101 @@
                     </div>
                     <Alert :type="alertType" :showAlert="showAlert" :message="alertMessage" />
                     <PreLoader v-if="showPreloader" :keepLoading="true" />
-                    <form v-on:submit="onSubmit" v-else>
-                        <div class="form-floating text-dark mb-3">
-                            <input type="text" class="form-control" id="fullname" placeholder="Full Name" required
-                                minlength="3" v-on:input="checkFullName">
-                            <label for="fullname">Full Name</label>
-                            <div class="invalid-feedback">
-                                [FirstName MiddleName LastName] Or FirstName of at least 3 characters required.
-                            </div>
-                            <div class="valid-feedback">
-                                Looks good!
-                            </div>
+                    <div v-else>
+                        <div v-if="!timeOutHandler.allowAccess">
+                            <h3 class="text-center"><strong>Enabling registration after ⌚.. </strong></h3>
+                            <CountDown :allowAccess="timeOutHandler.allowAccess" :name="timeOutHandler.timer_name"
+                                :timeout="timeOutHandler.timeout" :showTimer="timeOutHandler.showTimer" />
                         </div>
-                        <div class="form-floating text-dark mb-3">
-                            <input type="text" class="form-control" id="username" placeholder="Username" maxLength="16"
-                                minlength="6" required v-on:input="checkUserName">
-                            <label for="username">User Name</label>
-                            <div class="valid-feedback">
-                                Looks good!
+                        <form v-on:submit="onSubmit" v-else>
+                            <div class="form-floating text-dark mb-3">
+                                <input type="text" class="form-control" id="fullname" placeholder="Full Name" required
+                                    minlength="3" v-on:input="checkFullName">
+                                <label for="fullname">Full Name</label>
+                                <div class="invalid-feedback">
+                                    [FirstName MiddleName LastName] Or FirstName of at least 3 characters required.
+                                </div>
+                                <div class="valid-feedback">
+                                    Looks good!
+                                </div>
                             </div>
-                            <div class="invalid-feedback">
-                                Invalid username
+                            <div class="form-floating text-dark mb-3">
+                                <input type="text" class="form-control" id="username" placeholder="Username"
+                                    maxLength="16" minlength="6" required v-on:input="checkUserName">
+                                <label for="username">User Name</label>
+                                <div class="valid-feedback">
+                                    Looks good!
+                                </div>
+                                <div class="invalid-feedback">
+                                    Invalid username
+                                </div>
                             </div>
-                        </div>
-                        <div class="form-floating text-dark mb-3">
-                            <input type="email" class="form-control" id="email" required placeholder="name@example.com"
-                                v-on:input="checkEmail">
-                            <label for="email">Email address</label>
-                            <div class="valid-feedback">
-                                Looks good!
+                            <div class="form-floating text-dark mb-3">
+                                <input type="email" class="form-control" id="email" required
+                                    placeholder="name@example.com" v-on:input="checkEmail">
+                                <label for="email">Email address</label>
+                                <div class="valid-feedback">
+                                    Looks good!
+                                </div>
+                                <div class="invalid-feedback">
+                                    Invalid email.
+                                </div>
                             </div>
-                            <div class="invalid-feedback">
-                                Invalid email.
+                            <div class="form-floating text-dark mb-3">
+                                <input type="password" class="form-control" id="password" placeholder="Password"
+                                    required maxlength="20" minlength="8" v-on:input="checkPassword">
+                                <label for="password">Password</label>
+                                <div class="valid-feedback" id="password-valid">
+                                    {{ passwordValidMessage }}
+                                </div>
+                                <div class="invalid-feedback" id="password-invalid">
+                                    Your password must include 8-20 characters, including letters (uppercase and
+                                    lowercase),
+                                    numbers, spaces and special characters.
+                                </div>
+                                <div class="progress mb-3 mt-3 d-none" data-bs-toggle="tooltip" data-bs-placement="top"
+                                    title="">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: 0%"
+                                        aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="progress"></div>
+                                </div>
                             </div>
-                        </div>
-                        <div class="form-floating text-dark mb-3">
-                            <input type="password" class="form-control" id="password" placeholder="Password" required
-                                maxlength="20" minlength="8" v-on:input="checkPassword">
-                            <label for="password">Password</label>
-                            <div class="valid-feedback" id="password-valid">
-                                {{ passwordValidMessage }}
+                            <div class="form-floating text-dark mb-3">
+                                <input type="password" class="form-control" id="retype-password"
+                                    placeholder="Re-type Password" required maxlength="20" minlength="8"
+                                    v-on:input="checkRetype">
+                                <label for="retype-password">Re-type Password</label>
+                                <div class="valid-feedback">
+                                    Password Matched
+                                </div>
+                                <div class="invalid-feedback">
+                                    Password not matched
+                                </div>
+                                <div class="progress mb-3 mt-3 d-none" data-bs-toggle="tooltip" data-bs-placement="top"
+                                    title="">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: 0%"
+                                        aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="progress"></div>
+                                </div>
                             </div>
-                            <div class="invalid-feedback" id="password-invalid">
-                                Your password must include 8-20 characters, including letters (uppercase and lowercase),
-                                numbers, spaces and special characters.
+                            <div class="text-center mb-3">
+                                <button type="submit" class="btn btn-primary">Register <i
+                                        class="fa-solid fa-user-plus"></i></button>
                             </div>
-                            <div class="progress mb-3 mt-3 d-none" data-bs-toggle="tooltip" data-bs-placement="top"
-                                title="">
-                                <div class="progress-bar bg-success" role="progressbar" style="width: 0%"
-                                    aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="progress"></div>
+                            <div class="text-center mb-3">
+                                <p>Have account? <strong>
+                                        <router-link to="/login" class="link-success">Login
+                                        </router-link>
+                                    </strong>
+                                </p>
                             </div>
-                        </div>
-                        <div class="form-floating text-dark mb-3">
-                            <input type="password" class="form-control" id="retype-password"
-                                placeholder="Re-type Password" required maxlength="20" minlength="8"
-                                v-on:input="checkRetype">
-                            <label for="retype-password">Re-type Password</label>
-                            <div class="valid-feedback">
-                                Password Matched
+                            <div class="text-center mb-3">
+                                <p>How strong is your password? <strong>
+                                        <router-link to="/analyze" class="link-primary">Analyze it?
+                                        </router-link>
+                                    </strong>
+                                </p>
                             </div>
-                            <div class="invalid-feedback">
-                                Password not matched
-                            </div>
-                            <div class="progress mb-3 mt-3 d-none" data-bs-toggle="tooltip" data-bs-placement="top"
-                                title="">
-                                <div class="progress-bar bg-success" role="progressbar" style="width: 0%"
-                                    aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="progress"></div>
-                            </div>
-                        </div>
-                        <div class="text-center mb-3">
-                            <button type="submit" class="btn btn-primary">Register <i
-                                    class="fa-solid fa-user-plus"></i></button>
-                        </div>
-                        <div class="text-center mb-3">
-                            <p>Have account? <strong>
-                                    <router-link to="/login" class="link-success">Login
-                                    </router-link>
-                                </strong>
-                            </p>
-                        </div>
-                        <div class="text-center mb-3">
-                            <p>How strong is your password? <strong>
-                                    <router-link to="/analyze" class="link-primary">Analyze it?
-                                    </router-link>
-                                </strong>
-                            </p>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -110,6 +118,7 @@
 <script>
 import PreLoader from '@/components/PreLoader.vue'
 import Alert from '@/components/Alert.vue';
+import CountDown from '@/components/CountDown.vue';
 
 // Import Password Analyzer
 import PasswordAnalyzer from "../../../../library/security/lib.password.analyzer"
@@ -119,7 +128,8 @@ export default {
     name: 'Register',
     components: {
         PreLoader,
-        Alert
+        Alert,
+        CountDown
     },
     data() {
         return {
@@ -127,6 +137,13 @@ export default {
                 dark: require('@/assets/register-pana-dark.svg'),
                 light: require('@/assets/register-pana-light.svg')
             },
+            timeOutHandler: {
+                timeout: 0,
+                showTimer: false,
+                allowAccess: true,
+                timer_name: "register_timeout",
+            },
+            is429: false,
             passwordValidMessage: "Password accepted",
             passwordAccepted: false,
             passwordMatched: false,
@@ -137,7 +154,8 @@ export default {
             showPreloader: false,
             alertType: "",
             showAlert: false,
-            alertMessage: ""
+            alertMessage: "",
+            siteKey: "6LfE80YgAAAAAGCMj2RkW6u7Q7NoB1l-MIsZenwV"
         }
     },
     mounted() {
@@ -145,12 +163,39 @@ export default {
             method: 'GET',
             credentials: 'same-origin'
         }).then(response => {
-            if (response.status === 200) {
+            if (response.status === 2e2) {
                 return response.json();
             }
         }).then(json => {
             this.CSRF = json.result.CsrfToken;
         });
+
+        if (localStorage.getItem("register_timeout") !== null) {
+            const event = JSON.parse(localStorage.getItem("register_timeout"));
+            this.allowAccess = event.allowAccess;
+            this.showTimer = event.showTimer;
+            this.timeout = event.timeOut;
+        }
+        // Subscribing to MutationObserver
+        this.$store.subscribe((mutation, state) => {
+            if (mutation.type == "setTimeOut") {
+                if (mutation.payload.title == this.timeOutHandler.timer_name) {
+                    this.timeOutHandler.allowAccess = false;
+                    this.timeOutHandler.showTimer = true;
+                    this.timeOutHandler.timeout = mutation.payload.timeOut;
+                }
+            }
+            else if (mutation.type == "removeTimeout") {
+                if (this.timeOutHandler.timer_name == mutation.payload.title) {
+                    this.timeOutHandler.showTimer = false;
+                    this.timeOutHandler.allowAccess = true;
+                    this.timeOutHandler.timeout = 0;
+                    setTimeout(() => {
+                        window.location.reload()
+                    }, 5e2)
+                }
+            }
+        })
     },
     methods: {
         onSubmit(event) {
@@ -180,14 +225,26 @@ export default {
                     },
                     body: JSON.stringify(Payload)
                 })
-                    .then(response => response.json())
+                    .then(response => {
+                        this.is429 = response.status === 429;
+                        return response.json();
+                    })
                     .then(json => {
                         setTimeout(() => {
+                            if (this.is429) {
+                                this.timeOutHandler.allowAccess = false;
+                                this.timeOutHandler.showTimer = true;
+                                this.timeOutHandler.timeout = json.data.timeout;
+                            }
                             this.showPreloader = false;
-                            this.alertType = json.status == "error" ? "danger" : json.status;
+                            if (json.status == "error") {
+                                this.alertType = "danger";
+                            } else {
+                                this.alertType = "success";
+                            }
                             this.alertMessage = json.result;
                             this.showAlert = true;
-                        }, 2e3);
+                        }, 1e3);
                     });
             }
         },
@@ -325,9 +382,9 @@ export default {
         isDarkMode() {
             return this.$store.getters.appMode;
         },
-        isLoggedIn() {
-            return this.$store.getters.loggedIn;
-        },
+        // isLoggedIn() {
+        //     return this.$store.getters.loggedIn;
+        // },
     },
 
 }

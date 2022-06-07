@@ -5,7 +5,9 @@ export default createStore({
     preLoader: false,
     nightMode: false,
     internetConnected: false,
-    userLoggedIn: false
+    userLoggedIn: false,
+    timeOutHandler: {},
+    intervals: {}
   },
   getters: {
     loading(state) {
@@ -19,6 +21,9 @@ export default createStore({
     },
     loggedIn(state) {
       return state.userLoggedIn
+    },
+    timeOut(state) {
+      return state.timeOutHandler
     }
   },
   mutations: {
@@ -47,11 +52,33 @@ export default createStore({
     isLoggedIn(state) {
       state.userLoggedIn = true
     },
+    // isLoggedOut Mutations
     isLoggedOut(state) {
       state.userLoggedIn = false
+    },
+    // Timeout Handler Mutations
+    setTimeOut(state, payload) {
+      // Deleting title First
+      state.timeOutHandler[payload.title] = payload
+    },
+    removeTimeout(state, payload) {
+      state.timeOutHandler[payload.title] = {}
     }
   },
   actions: {
+    BEGIN_TIMEOUT({ commit, state }, payload) {
+      state.intervals[payload.payload.title] = setInterval(() => {
+        if (payload.payload.timeOut == 0) {
+          clearInterval(state.intervals[payload.payload.title]);
+          state.intervals[payload.payload.title] = {}
+          commit('removeTimeout', payload.payload)
+        }
+        else {
+          commit('setTimeOut', payload.payload)
+          payload.payload.timeOut -= 1e3;
+        }
+      }, 1e3)
+    }
   },
   modules: {
   }

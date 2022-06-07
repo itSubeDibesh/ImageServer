@@ -25,6 +25,12 @@
                     "periodInMs": 3e4
                 }
             }
+        },
+        "limit": {
+            "register": {
+                "requests": 3,
+                "minutes": 1
+            }
         }
     },
     "image": {
@@ -46,5 +52,21 @@
     },
     "database": {
         "scriptName": "ImageServer"
+    },
+    "mail": {
+        "appName": "ImageServer",
+        "from": "dsubedi@ismt.edu.np",
+        "priority": "high",
+        "port": 2525,
+        "secure": false,
+        "host": "smtp.mailtrap.io",
+        "auth": {
+            "user": "e6290a30fab054",
+            "pass": "a5328582691495"
+        }
+    },
+    "reCaptcha": {
+        "siteKey": "6Ldgc0cgAAAAAHjqNfj5q4qWUruiHOnlF_3iF37k",
+        "secretKey": "6Ldgc0cgAAAAAIOayrU40OKE_GDJdzdKJjSJUtKV"
     }
 }

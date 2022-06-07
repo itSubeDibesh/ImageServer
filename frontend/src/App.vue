@@ -7,16 +7,14 @@
       <div class="mb-5">
         <router-view />
       </div>
-      <Footer :fixedBottom="true" />
     </div>
   </div>
 </template>
-
 <script>
 // @ is an alias to /src
 import NetworkStatus from '@/components/NetworkStatus.vue'
 import NavBar from '@/components/NavBar.vue'
-import Footer from '@/components/Footer.vue'
+
 import PreLoader from '@/components/PreLoader.vue'
 
 // Exporting the data required by other components
@@ -25,8 +23,7 @@ export default {
   components: {
     NavBar,
     PreLoader,
-    NetworkStatus,
-    Footer
+    NetworkStatus
   },
   data() {
     return {
@@ -103,7 +100,6 @@ export default {
   },
   watch: {
     $route(to, from) {
-      console.log(to, from)
       this.title = to.meta.title;
       document.title = `${this.title} || Image Server` || "Image Server";
       if (this.title === undefined) {
@@ -124,7 +120,7 @@ export default {
     // Check if Night Mode is enabled
     this.isNightModeEnabled();
     // Check if user is logged in
-    this.isUserLoggedIn();
+    // this.isUserLoggedIn();
   },
   computed: {
     showPreload() {

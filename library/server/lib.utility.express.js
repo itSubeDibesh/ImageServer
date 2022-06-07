@@ -21,48 +21,67 @@ class Utility {
      */
     static csrfProtection = Utility.Csurf({ cookie: true, sameSite: 'strict', secure: true });
     /**
-    * @description Importing Rate Limiter
+    * @description Importing Rate Limit
+    * @memberof Utility
     */
     static RateLimit = require('express-rate-limit')
     /**
      * @description Importing Express
+     * @memberof Utility
      */
     static Express = require('express')
     /**
     * @description Importing FileLogger
+    * @memberof Utility
     */
     static FileLogger = require('../logger/lib.file.logger')
     /**
     * @description Importing FileLogger
+    * @memberof Utility
     */
     static ServerConfig = require('../../configuration/server.json')
     /** 
      * @description Import Database
+     * @memberof Utility
      */
     static SQLite = require('../database/lib.database.sqlite')
     /** 
      * @description Import Crypto
+     * @memberof Utility
      */
     static Crypto = require('crypto')
+    /**
+   * @description Import Mailer
+   * @memberof Utility
+   */
+    static Mailer = require('../mail/lib.mailer.node')
+    /**
+   * @description Creating Mail Handel
+   * @memberof Utility
+   */
+    static MailHandel = new Utility.Mailer()
     /** 
      * @description Import Express Validator
+     * @memberof Utility
      */
     static ExpressValidator = require('express-validator')
     /**
      * @description Converts MilliSeconds to Seconds
      * @param {number} milliSeconds 
      * @returns {number}
+     * @memberof Utility
      */
     static msToS = function (milliSeconds) {
-        return milliSeconds / 1000;
+        return milliSeconds / 1e3;
     }
     /**
      * @description Converts Min to MilliSeconds
      * @param {number} milliSeconds 
      * @returns {number}
+     * @memberof Utility
      */
     static minToMs = function (minutes) {
-        return minutes * 60 * 1000;
+        return minutes * 6e4;
     }
     /**
       * @description Returns The Request Rate Limiter as per configuration -> use in Request header
@@ -72,6 +91,7 @@ class Utility {
       * @param {boolean} standardHeaders - true
       * @param {boolean} legacyHeaders  - false
       * @returns {object}
+      * @memberof Utility
       */
     static setRequestLimiter = function (windowMs = (1e3 * 60 * 15), max = 10, standardHeaders = true, legacyHeaders = false) {
         return Utility.RateLimit({
@@ -85,6 +105,9 @@ class Utility {
                         success: false,
                         status: "error",
                         result: `Too Many Requests, Please try again after ${Utility.msToS(windowMs) / 60} minutes.`,
+                        data: {
+                            timeout: windowMs
+                        }
                     },
                     statusCode = 429,
                     statusMessage = "Too Many Requests";
@@ -99,6 +122,7 @@ class Utility {
      * @description Hash the given string
      * @param {string} stream -> Stream to be hashed
      * @returns {string}
+     * @memberof Utility
      */
     static SHA_512 = function (stream) {
         return Utility.Crypto.createHash('sha512').update(stream).digest('hex');

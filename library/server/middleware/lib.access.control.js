@@ -17,7 +17,7 @@ class AccessControl {
         return (request, response, next) => {
             // Extracting IP Address
             const ip = request.headers['x-forwarded-for'] || request.connection.remoteAddress;
-            console.log(ip);
+            // console.log(ip);
             next();
         }
     }

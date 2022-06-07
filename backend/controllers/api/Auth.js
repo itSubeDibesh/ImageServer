@@ -8,7 +8,8 @@
 
 const
     // Importing required modules
-    { Router, ExpressValidator, SHA_512, ResponseLogger, csrfProtection, setRequestLimiter, minToMs } = require("../../../library/server/lib.utility.express"),
+    { Router, ExpressValidator, SHA_512, ResponseLogger, csrfProtection, setRequestLimiter, minToMs, MailHandel, ServerConfig } = require("../../../library/server/lib.utility.express"),
+    RequestLimit = ServerConfig.server.limit.register,
     // Extracting Router from util
     AuthRouter = Router(),
     // Extracting ExpressValidator from util
@@ -79,7 +80,7 @@ AuthRouter
             check("fullname", "Fullname is required").notEmpty(),
         ],
         // Setup Request Limit -> Requests per minute -> 3 request 10 minutes 
-        setRequestLimiter(minToMs(10), 3),
+        setRequestLimiter(minToMs(RequestLimit.minutes), RequestLimit.requests),
         // Request Handel
         (request, response) => {
             /** 
@@ -125,10 +126,10 @@ AuthRouter
              * InputRequestValidation: Working, Included
              * CSRF: Working, Included
              * Request Limit: Working, Included
+             * Hashing: Working, Included
              * 
-             * Hashing: no, Included
-             * Auth Token: no, Not Included
              * Captcha: no, Included
+             * Auth Token: no, Not Included
              * 
              */
             let Payload = {
@@ -148,10 +149,26 @@ AuthRouter
             }
             // When All Request Condition Satisfies
             else {
+                // console.log(SHA_512(request.body.email + request.body.password + "IMAGE_SERVER_HASH"));
+                const EmailConfig = {
+                    subject: "Verify your email, ImageServer 🔐",
+                    title: "ImageServer - Email Verification ✉",
+                    user: request.body.username,
+                    email: request.body.email,
+                    message: `Follow this link to verify your email address.<br>
+                    <span class="text-center"><a href="https://www.github.com/itsubedibesh" target="_blank" class="btn btn-success">CLick Me 👆</a></span>
+                    <br>
+                    <a href="https://www.github.com/itsubedibesh" target="_blank" class="link-success">http://www.github.com/itsubedibesh</a>
+                    `,
+                }
+                // Send Email to User
+                // MailHandel.sendEmail(EmailConfig.subject, EmailConfig.email, EmailConfig.user, EmailConfig.title, EmailConfig.message)
+
+
                 // Demo Success Response
                 Payload.success = true;
                 Payload.status = "success";
-                Payload.result = "User Registered Successfully, Please Verify Your Email!";
+                Payload.result = `User Registered Successfully, Please Verify Your Email ${EmailConfig.email}!`;
                 statusCode = 200;
                 statusMessage = "Ok";
             }
