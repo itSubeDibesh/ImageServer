@@ -118,29 +118,31 @@
                 <div class="mb-3 col-lg-12 col-md-12 ">
                     <img :src="isDarkMode ? images.light : images.dark" class="img img-fluid" alt="Register Image">
                 </div>
-                <div class="mb-3 col-lg-6 col-md-6 col-sm-6" v-if="typingPassword">
+                <div class="mb-3 col-lg-10 col-md-10 col-sm-10" v-if="typingPassword">
                     <div class="card mb-3">
                         <div class="card-body"
                             :class="{ 'text-light bg-dark border-light': isDarkMode, 'text-dark bg-light border-dark': !isDarkMode }">
                             <ul class="list-group">
-                                <li class="list-group-item" id="lowerCaseAccept"> <i
-                                        class="fa-solid fa-check-circle text-danger"></i>
+                                <li class="list-group-item" id="lowercase">
+                                    <i class="fa-solid fa-circle-xmark text-danger"></i>
                                     Lowercase [a-z]
                                 </li>
-                                <li class="list-group-item" id="upperCaseAccept"><i
-                                        class="fa-solid fa-check-circle text-danger"></i>
+                                <li class="list-group-item" id="uppercase">
+                                    <i class="fa-solid fa-circle-xmark text-danger"></i>
                                     Uppercase [A-Z]
                                 </li>
-                                <li class="list-group-item" id="numberAccept"><i
-                                        class="fa-solid fa-circle text-danger"></i> Numbers [0-9]
+                                <li class="list-group-item" id="number">
+                                    <i class="fa-solid fa-circle-xmark text-danger"></i>
+                                    Numbers [0-9]
                                 </li>
-                                <li class="list-group-item" id="specialCharactersAccept"><i
-                                        class="fa-solid fa-circle text-danger"></i> Special
+                                <li class="list-group-item" id="specialCharacters">
+                                    <i class="fa-solid fa-circle-xmark text-danger"></i> Special
                                     Characters
-                                    [#,@,$...]</li>
-                                <li class="list-group-item" id="whitespaceAccept"><i
-                                        class="fa-solid fa-circle text-danger"></i> Whitespace [
-                                    ]</li>
+                                    [#,@,$...]
+                                </li>
+                                <li class="list-group-item" id="whiteSpace">
+                                    <i class="fa-solid fa-circle-xmark text-danger"></i> Whitespace [ ]
+                                </li>
                             </ul>
                         </div>
                     </div>
@@ -199,16 +201,16 @@ export default {
     },
     mounted() {
         // Fetch CSRF Token
-        // fetch('/api/auth/csrf', {
-        //     method: 'GET',
-        //     credentials: 'same-origin'
-        // }).then(response => {
-        //     if (response.status === 2e2) {
-        //         return response.json();
-        //     }
-        // }).then(json => {
-        //     this.CSRF = json.result.CsrfToken;
-        // });
+        fetch('/api/auth/csrf', {
+            method: 'GET',
+            credentials: 'same-origin'
+        }).then(response => {
+            if (response.status === 2e2) {
+                return response.json();
+            }
+        }).then(json => {
+            this.CSRF = json.result.CsrfToken;
+        });
         // Timeout Handler
         // Subscribing to MutationObserver
         this.$store.subscribe((mutation) => {
@@ -360,8 +362,21 @@ export default {
                 this.passwordAccepted = features.acceptable;
                 const retype = document.getElementById('retype-password');
                 // A div Handle Showing Checks on Items Matched
-                console.log(analysis)
-
+                setTimeout(() => {
+                    for (const key in features.characterCount) {
+                        if (Object.hasOwnProperty.call(features.characterCount, key)) {
+                            const item = document.getElementById(key);
+                            item.firstElementChild.innerHTML = features.characterCount[key];
+                            if (features.characterCount[key] == 0) {
+                                this.toggle(item.firstChild)('text-success', 'text-danger');
+                                this.toggle(item.firstChild)('fa-circle-check', 'fa-circle-xmark');
+                            } else {
+                                this.toggle(item.firstChild)('fa-circle-xmark', 'fa-circle-check');
+                                this.toggle(item.firstChild)('text-danger', 'text-success');
+                            }
+                        }
+                    }
+                }, 5)
 
                 if (retype.value == event.target.value) {
                     this.toggle(retype)('is-invalid', 'is-valid')
