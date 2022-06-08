@@ -9,7 +9,7 @@
                             <strong>Register</strong>
                         </h4>
                     </div>
-                    <Alert :type="alertType" :showAlert="showAlert" :message="alertMessage" />
+                    <Alert :type="alertType" :showAlert="showAlert" :message="alertMessage" @hideAlert="hideAlert" />
                     <PreLoader v-if="showPreloader" :keepLoading="true" />
                     <div v-else>
                         <div v-if="!timeOutHandler.allowAccess">
@@ -86,6 +86,10 @@
                                         aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="progress"></div>
                                 </div>
                             </div>
+                            <div class="form-floating text-center mb-3">
+                                <vue-recaptcha ref="recaptcha" sitekey="6Ldgc0cgAAAAAHjqNfj5q4qWUruiHOnlF_3iF37k"
+                                    @verify="captchaVerify" @error="captchaError" @expired="captchaExpired" />
+                            </div>
                             <div class="text-center mb-3">
                                 <button type="submit" class="btn btn-primary">Register <i
                                         class="fa-solid fa-user-plus"></i></button>
@@ -110,7 +114,38 @@
             </div>
         </div>
         <div class="mb-3 col-lg-6 col-md-6 d-none d-lg-block">
-            <img :src="isDarkMode ? images.light : images.dark" class="img img-fluid" alt="Register Image">
+            <div class="row">
+                <div class="mb-3 col-lg-12 col-md-12 ">
+                    <img :src="isDarkMode ? images.light : images.dark" class="img img-fluid" alt="Register Image">
+                </div>
+                <div class="mb-3 col-lg-6 col-md-6 col-sm-6" v-if="typingPassword">
+                    <div class="card mb-3">
+                        <div class="card-body"
+                            :class="{ 'text-light bg-dark border-light': isDarkMode, 'text-dark bg-light border-dark': !isDarkMode }">
+                            <ul class="list-group">
+                                <li class="list-group-item" id="lowerCaseAccept"> <i
+                                        class="fa-solid fa-check-circle text-danger"></i>
+                                    Lowercase [a-z]
+                                </li>
+                                <li class="list-group-item" id="upperCaseAccept"><i
+                                        class="fa-solid fa-check-circle text-danger"></i>
+                                    Uppercase [A-Z]
+                                </li>
+                                <li class="list-group-item" id="numberAccept"><i
+                                        class="fa-solid fa-circle text-danger"></i> Numbers [0-9]
+                                </li>
+                                <li class="list-group-item" id="specialCharactersAccept"><i
+                                        class="fa-solid fa-circle text-danger"></i> Special
+                                    Characters
+                                    [#,@,$...]</li>
+                                <li class="list-group-item" id="whitespaceAccept"><i
+                                        class="fa-solid fa-circle text-danger"></i> Whitespace [
+                                    ]</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </template>
@@ -119,6 +154,7 @@
 import PreLoader from '@/components/PreLoader.vue'
 import Alert from '@/components/Alert.vue';
 import CountDown from '@/components/CountDown.vue';
+import { VueRecaptcha } from 'vue-recaptcha';
 
 // Import Password Analyzer
 import PasswordAnalyzer from "../../../../library/security/lib.password.analyzer"
@@ -129,7 +165,8 @@ export default {
     components: {
         PreLoader,
         Alert,
-        CountDown
+        CountDown,
+        VueRecaptcha
     },
     data() {
         return {
@@ -146,6 +183,7 @@ export default {
             is429: false,
             passwordValidMessage: "Password accepted",
             passwordAccepted: false,
+            typingPassword: false,
             passwordMatched: false,
             emailAccepted: false,
             fullNameAccepted: false,
@@ -155,29 +193,25 @@ export default {
             alertType: "",
             showAlert: false,
             alertMessage: "",
-            siteKey: "6LfE80YgAAAAAGCMj2RkW6u7Q7NoB1l-MIsZenwV"
+            captchaVerified: false,
+            captchaToken: "",
         }
     },
     mounted() {
-        fetch('/api/auth/csrf', {
-            method: 'GET',
-            credentials: 'same-origin'
-        }).then(response => {
-            if (response.status === 2e2) {
-                return response.json();
-            }
-        }).then(json => {
-            this.CSRF = json.result.CsrfToken;
-        });
-
-        if (localStorage.getItem("register_timeout") !== null) {
-            const event = JSON.parse(localStorage.getItem("register_timeout"));
-            this.allowAccess = event.allowAccess;
-            this.showTimer = event.showTimer;
-            this.timeout = event.timeOut;
-        }
+        // Fetch CSRF Token
+        // fetch('/api/auth/csrf', {
+        //     method: 'GET',
+        //     credentials: 'same-origin'
+        // }).then(response => {
+        //     if (response.status === 2e2) {
+        //         return response.json();
+        //     }
+        // }).then(json => {
+        //     this.CSRF = json.result.CsrfToken;
+        // });
+        // Timeout Handler
         // Subscribing to MutationObserver
-        this.$store.subscribe((mutation, state) => {
+        this.$store.subscribe((mutation) => {
             if (mutation.type == "setTimeOut") {
                 if (mutation.payload.title == this.timeOutHandler.timer_name) {
                     this.timeOutHandler.allowAccess = false;
@@ -198,55 +232,96 @@ export default {
         })
     },
     methods: {
+        hideAlert(event) {
+            this.showAlert = event.showAlert;
+            this.alertType = event.type;
+            this.alertMessage = event.message;
+        },
+        captchaVerify(token) {
+            this.captchaVerified = true;
+            this.captchaToken = token;
+        },
         onSubmit(event) {
             event.preventDefault();
-            if (
-                this.passwordAccepted &&
-                this.passwordMatched &&
-                this.emailAccepted &&
-                this.fullNameAccepted &&
-                this.usernameAccepted
-            ) {
-                const Payload = {
-                    fullname: document.getElementById('fullname').value,
-                    username: document.getElementById('username').value,
-                    email: document.getElementById('email').value,
-                    password: document.getElementById('password').value
-                }
-                // Show Preloader on register button unless response if error hide preloader and show error in alert component
-                this.showPreloader = true;
-                // Make a request to register the user api
-                fetch('/api/auth/register', {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': this.CSRF
-                    },
-                    body: JSON.stringify(Payload)
-                })
-                    .then(response => {
-                        this.is429 = response.status === 429;
-                        return response.json();
+            /// Checking if Form Elements are In Valid Alert on Submission click
+            let Checks = [];
+            [
+                { type: "Password", value: this.passwordAccepted },
+                { type: "Re-type Password", value: this.passwordMatched },
+                { type: "Email", value: this.emailAccepted },
+                { type: "FullName", value: this.fullNameAccepted },
+                { type: "Username", value: this.usernameAccepted }
+            ]
+                .forEach(item => {
+                    if (!item.value) Checks.push(item.type)
+                });
+            if (Checks.length != 0) {
+                this.showAlert = true;
+                this.alertType = "danger";
+                this.alertMessage = `${[...Checks]} Not Accepted, Please Check and Try Again.`;
+                return;
+            } else {
+                if (this.captchaVerified == false) {
+                    this.showAlert = true;
+                    this.alertType = "danger";
+                    this.alertMessage = `Captcha Not Verified, Please Check and Try Again.`;
+                } else {
+                    this.showAlert = false;
+                    // Captcha check -> Before Payload Hit 
+                    const Payload = {
+                        fullname: document.getElementById('fullname').value,
+                        username: document.getElementById('username').value,
+                        email: document.getElementById('email').value,
+                        password: document.getElementById('password').value,
+                        captcha: this.captchaToken
+                    }
+                    // Show Preloader on register button unless response if error hide preloader and show error in alert component
+                    this.showPreloader = true;
+                    // Make a request to register the user api
+                    fetch('/api/auth/register', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': this.CSRF
+                        },
+                        body: JSON.stringify(Payload)
                     })
-                    .then(json => {
-                        setTimeout(() => {
-                            if (this.is429) {
-                                this.timeOutHandler.allowAccess = false;
-                                this.timeOutHandler.showTimer = true;
-                                this.timeOutHandler.timeout = json.data.timeout;
-                            }
-                            this.showPreloader = false;
-                            if (json.status == "error") {
-                                this.alertType = "danger";
-                            } else {
-                                this.alertType = "success";
-                            }
-                            this.alertMessage = json.result;
-                            this.showAlert = true;
-                        }, 1e3);
-                    });
+                        .then(response => {
+                            this.is429 = response.status === 429;
+                            return response.json();
+                        })
+                        .then(json => {
+                            setTimeout(() => {
+                                if (this.is429) {
+                                    this.timeOutHandler.allowAccess = false;
+                                    this.timeOutHandler.showTimer = true;
+                                    this.timeOutHandler.timeout = json.data.timeout;
+                                }
+                                this.showPreloader = false;
+                                if (json.status == "error") {
+                                    this.alertType = "danger";
+                                } else {
+                                    this.alertType = "success";
+                                }
+                                this.alertMessage = json.result;
+                                this.showAlert = true;
+                            }, 1e3);
+                        });
+                }
             }
+        },
+        captchaError(event) {
+            this.showAlert = true;
+            this.alertType = "danger";
+            this.alertMessage = `Captcha Error, Please Check and Try Again.`;
+            console.error(event);
+        },
+        captchaExpired(event) {
+            this.showAlert = true;
+            this.alertType = "danger";
+            this.alertMessage = `Captcha Expired, Please Try Again.`;
+            console.error(event);
         },
         setProgress: (target) => (ariaValuenow, width, innerHTML) => {
             target.attributes.ariaValuenow = ariaValuenow;
@@ -265,6 +340,7 @@ export default {
                 progressDiv = document.getElementsByClassName('progress')[0];
             // Checking if Length is 0
             if (event.target.value.length != 0) {
+                this.typingPassword = true;
                 // Showing Progress Bar Div
                 this.toggle(progressDiv)('d-none')
                 // Analyze Password
@@ -283,6 +359,10 @@ export default {
                 // Checking password accepted
                 this.passwordAccepted = features.acceptable;
                 const retype = document.getElementById('retype-password');
+                // A div Handle Showing Checks on Items Matched
+                console.log(analysis)
+
+
                 if (retype.value == event.target.value) {
                     this.toggle(retype)('is-invalid', 'is-valid')
                     this.passwordMatched = true;
@@ -298,6 +378,7 @@ export default {
                 } else this.toggle(event.target)('is-valid', 'is-invalid')
             }
             else {
+                this.typingPassword = false;
                 // Resetting Toggle
                 this.toggle(event.target)('is-valid')
                 this.toggle(event.target)('is-invalid')

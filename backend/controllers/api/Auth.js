@@ -128,7 +128,7 @@ AuthRouter
              * Request Limit: Working, Included
              * Hashing: Working, Included
              * 
-             * Captcha: no, Included
+             * Captcha: Working, Included
              * Auth Token: no, Not Included
              * 
              */

@@ -7,7 +7,7 @@ export default createStore({
     internetConnected: false,
     userLoggedIn: false,
     timeOutHandler: {},
-    intervals: {}
+    intervals: {},
   },
   getters: {
     loading(state) {
@@ -78,7 +78,7 @@ export default createStore({
           payload.payload.timeOut -= 1e3;
         }
       }, 1e3)
-    }
+    },
   },
   modules: {
   }

@@ -18,6 +18,7 @@
         "preventions": {
             "sqLInjection": true,
             "enableAccessControl": true,
+            "enableReCaptcha": true,
             "limitRequest": {
                 "state": false,
                 "limit": {
@@ -67,6 +68,10 @@
     },
     "reCaptcha": {
         "siteKey": "6Ldgc0cgAAAAAHjqNfj5q4qWUruiHOnlF_3iF37k",
-        "secretKey": "6Ldgc0cgAAAAAIOayrU40OKE_GDJdzdKJjSJUtKV"
+        "secretKey": "6Ldgc0cgAAAAAIOayrU40OKE_GDJdzdKJjSJUtKV",
+        "endPoints": [
+            "/api/auth/register",
+            "/api/auth/login"
+        ]
     }
 }

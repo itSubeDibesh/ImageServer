@@ -40,6 +40,7 @@
     "express-validator": "^6.14.0",
     "helmet": "^5.1.0",
     "multer": "^1.4.4-lts.1",
+    "node-fetch": "^3.2.5",
     "nodemailer": "^6.7.5",
     "snipercode.filesystem": "^1.0.1",
     "sqlite3": "^5.0.8",

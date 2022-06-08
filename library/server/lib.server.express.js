@@ -70,6 +70,10 @@ var
          * @description Importing AccessControl Middleware
          */
         AccessControl: require('../server/middleware/lib.access.control').control,
+        /**
+         * @description Importing ReCaptcha Middleware
+         */
+        ReCaptcha: require('./middleware/lib.recaptcha.google').captcha,
     },
     /**
      * @description Importing Configurations
@@ -169,6 +173,7 @@ class Server {
         this.isHttp = Config.server.isHttp;
         this.preventSqlInjection = Config.server.preventions.sqLInjection;
         this.enableAccessControl = Config.server.preventions.enableAccessControl;
+        this.enableReCaptcha = Config.server.preventions.enableReCaptcha;
         this.setRequestLimit = false;
         if (Config.server.preventions.limitRequest.state) {
             const { request, periodInMs } = Config.server.preventions.limitRequest.limit
@@ -197,7 +202,7 @@ class Server {
     * @returns {Server}
     */
     #logRequests() {
-        if (this.enableLogging)
+        if (this.enableLogging) {
             this
                 .server
                 .use((req, res, next) => {
@@ -242,23 +247,23 @@ class Server {
                     }
                     // Making other middleware calls
                     next();
-                });
-        // Logging Errors
-        if (this.enableLogging)
-            this.server.use((err, req, res, next) => {
-                // Define payload
-                const payload = { Error: { Message: err.message, Stack: err.stack, Code: err.statusCode } };
-                // Log on Files
-                this.Logger.log(this.Logger.currentFileType === Packages.FileLogger.FileTypes.JSON ? payload : err.stack)
-                // Error Checking
-                if (err) {
-                    this.Response.log(`✉ [500 Internal Error] with PAYLOAD [${JSON.stringify({ success: !1, status: 500, result: err.message })}]`);
-                    // Send response
-                    res.status(500).send({ success: !1, status: 500, result: err.message });
-                }
-                // Making other middleware calls
-                else next();
-            })
+                })
+                // Logging Errors
+                .use((err, req, res, next) => {
+                    // Define payload
+                    const payload = { Error: { Message: err.message, Stack: err.stack, Code: err.statusCode } };
+                    // Log on Files
+                    this.Logger.log(this.Logger.currentFileType === Packages.FileLogger.FileTypes.JSON ? payload : err.stack)
+                    // Error Checking
+                    if (err) {
+                        this.Response.log(`✉ [500 Internal Error] with PAYLOAD [${JSON.stringify({ success: !1, status: 500, result: err.message })}]`);
+                        // Send response
+                        res.status(500).send({ success: !1, status: 500, result: err.message });
+                    }
+                    // Making other middleware calls
+                    else next();
+                })
+        }
         return this;
     }
 
@@ -267,10 +272,10 @@ class Server {
      * @memberof Server
      * @returns {Server}
      */
-    #activateHttp() {
+    async #activateHttp() {
         const
             { XSS, Helmet, Cors, Session, Express, CookieParser, History } = Packages,
-            { SQLInjection, AccessControl } = MiddleWare;
+            { SQLInjection, AccessControl, ReCaptcha } = MiddleWare;
         // Check if the Frontend build is completed
         this.server
             // Hiding the server information
@@ -297,6 +302,8 @@ class Server {
         if (this.preventSqlInjection) this.server.use(SQLInjection());
         // Enabling Access Control
         if (this.enableAccessControl) this.server.use(AccessControl());
+        // Enabling ReCaptcha
+        if (this.enableReCaptcha) this.server.use(await ReCaptcha());
         // Setting Request Limit
         if (this.setRequestLimit) this.server.use(this.requestLimit);
         // Checking if its Production Mode and Production Files Exists
@@ -524,8 +531,8 @@ class Server {
         this
             // Activate HTTP Configurations
             .#activateHttp()
-            // Log All the Incoming requests
-            .#logRequests()
+        // Log All the Incoming requests
+        this.#logRequests()
             // Handle Swagger
             .#swaggerHttp()
             // Handel Http Web, API and Socket Routes
