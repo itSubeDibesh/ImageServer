@@ -231,7 +231,7 @@ class QueryBuilder {
      * @param {array} columns - Columns
      * @returns {QueryBuilder}
      */
-    select(selectType = QueryBuilder.selectType.ALL, columns = []) {
+    select(selectType, columns = []) {
         // Resetting Query
         this.#sqlQuery = ""
         this.#currentStatement = QueryBuilder.statementType.SELECT;
@@ -242,9 +242,9 @@ class QueryBuilder {
             if (selectType == QueryBuilder.selectType.ALL)
                 this.#sqlQuery += " *";
             if (selectType == QueryBuilder.selectType.COLUMN && columns.length != 0)
-                this.#sqlQuery += ` (${[...columns]})`;
+                this.#sqlQuery += ` ${[...columns]}`;
             if (selectType == QueryBuilder.selectType.DISTINCT && columns.length != 0)
-                this.#sqlQuery += ` DISTINCT (${[...columns]})`;
+                this.#sqlQuery += ` DISTINCT ${[...columns]}`;
             this.#sqlQuery += ` FROM ${this.#table}`;
         }
         return this;
@@ -267,7 +267,8 @@ class QueryBuilder {
             this.#sqlQuery += ` ${this.#table}`;
             this.#sqlQuery += ` SET ${[...columns].map((column, index) => `${column} = ${values[index]}`).join(", ")}`;
             // Remove Last Comma
-            this.#sqlQuery = this.#sqlQuery.substring(0, this.#sqlQuery.length - 2);
+            if (this.#sqlQuery.endsWith(", "))
+                this.#sqlQuery = this.#sqlQuery.substring(0, this.#sqlQuery.length - 2);
         }
         return this;
     }
@@ -560,14 +561,16 @@ class Database extends QueryBuilder {
                     this.Logger.log(`🐞 ${err.code} ${err} ${err.stack}\n`);
                     callback({
                         error: err,
-                        rows: null
+                        rows: null,
+                        status: false
                     });
                 }
                 else {
                     this.Logger.log(`📄 ${SQLQuery}`);
                     callback({
                         error: null,
-                        rows: rows
+                        rows: rows,
+                        status: true
                     });
                 }
             });
@@ -577,12 +580,14 @@ class Database extends QueryBuilder {
                     if (err) {
                         this.Logger.log(`🐞 ${err.code} ${err} ${err.stack}\n`);
                         callback({
-                            error: err
+                            error: err,
+                            status: false
                         });
                     } else {
                         this.Logger.log(`📄 ${SQLQuery}`);
                         callback({
                             error: null,
+                            status: true
                         });
                     }
                 });

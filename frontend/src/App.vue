@@ -5,6 +5,7 @@
     <div class="container" :class="{ 'mt-5 pt-5': isOnline, 'mt-3 pt-0': !isOnline }">
       <NetworkStatus :class="{ 'd-none': isOnline }" />
       <div class="mb-5">
+        <Alert :type="alertType" :showAlert="showAlert" :message="alertMessage" @hideAlert="hideAlert" />
         <router-view />
       </div>
     </div>
@@ -14,7 +15,7 @@
 // @ is an alias to /src
 import NetworkStatus from '@/components/NetworkStatus.vue'
 import NavBar from '@/components/NavBar.vue'
-
+import Alert from '@/components/Alert.vue';
 import PreLoader from '@/components/PreLoader.vue'
 
 // Exporting the data required by other components
@@ -23,14 +24,23 @@ export default {
   components: {
     NavBar,
     PreLoader,
-    NetworkStatus
+    NetworkStatus,
+    Alert
   },
   data() {
     return {
-      title: "Home"
+      title: "Home",
+      alertType: '',
+      alertMessage: '',
+      showAlert: false,
     };
   },
   methods: {
+    hideAlert(event) {
+      this.showAlert = event.showAlert;
+      this.alertType = event.type;
+      this.alertMessage = event.message;
+    },
     changeColor() {
       if (localStorage.length != 0 && localStorage.getItem('isDarkMode') === 'false') {
         document.body.classList.remove('bg-dark');
@@ -113,6 +123,13 @@ export default {
     },
   },
   beforeMount() {
+    this.$store.subscribe((mutation) => {
+      if (mutation.type == "setAlert") {
+        this.showAlert = mutation.payload.showAlert;
+        this.alertType = mutation.payload.type;
+        this.alertMessage = mutation.payload.message;
+      }
+    })
     // Enabling Show Preloader
     this.$store.commit('isLoading');
     // Check if network is connected

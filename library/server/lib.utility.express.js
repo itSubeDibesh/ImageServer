@@ -191,7 +191,39 @@ class Utility {
      * @returns {object}
      */
     static getDatabase() {
-        return Utility.getDatabase()
+        return Utility.setDatabase()
+    }
+    /**
+     * @static Returns Random String
+     * @param {number} length 
+     * @returns {string}
+     */
+    static RandomString = function (length) {
+        // Generate Random String
+        const
+            possibleUpperCase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+            possibleLowerCase = possibleUpperCase.toLowerCase(),
+            possibleNumbers = "0123456789",
+            possibleSpecialChars = "@$#";
+        let text = "";
+        for (let i = 0; i < length; i++) {
+            let random = Math.floor(Math.random() * 4);
+            switch (random) {
+                case 0:
+                    text += possibleUpperCase.charAt(Math.floor(Math.random() * possibleUpperCase.length));
+                    break;
+                case 1:
+                    text += possibleLowerCase.charAt(Math.floor(Math.random() * possibleLowerCase.length));
+                    break;
+                case 2:
+                    text += possibleNumbers.charAt(Math.floor(Math.random() * possibleNumbers.length));
+                    break;
+                case 3:
+                    text += possibleSpecialChars.charAt(Math.floor(Math.random() * possibleSpecialChars.length));
+                    break;
+            }
+        }
+        return text;
     }
 }
 // Exporting Module

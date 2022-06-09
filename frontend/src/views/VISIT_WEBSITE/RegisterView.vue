@@ -87,8 +87,8 @@
                                 </div>
                             </div>
                             <div class="form-floating text-center mb-3">
-                                <vue-recaptcha ref="recaptcha" sitekey="6Ldgc0cgAAAAAHjqNfj5q4qWUruiHOnlF_3iF37k"
-                                    @verify="captchaVerify" @error="captchaError" @expired="captchaExpired" />
+                                <vue-recaptcha ref="recaptcha" :sitekey="siteKey" @verify="captchaVerify"
+                                    @error="captchaError" @expired="captchaExpired" />
                             </div>
                             <div class="text-center mb-3">
                                 <button type="submit" class="btn btn-primary">Register <i
@@ -172,6 +172,7 @@ export default {
     },
     data() {
         return {
+            siteKey: this.$store.getters.getSiteKey,
             images: {
                 dark: require('@/assets/register-pana-dark.svg'),
                 light: require('@/assets/register-pana-light.svg')
@@ -239,10 +240,6 @@ export default {
             this.alertType = event.type;
             this.alertMessage = event.message;
         },
-        captchaVerify(token) {
-            this.captchaVerified = true;
-            this.captchaToken = token;
-        },
         onSubmit(event) {
             event.preventDefault();
             /// Checking if Form Elements are In Valid Alert on Submission click
@@ -301,17 +298,17 @@ export default {
                                     this.timeOutHandler.timeout = json.data.timeout;
                                 }
                                 this.showPreloader = false;
-                                if (json.status == "error") {
-                                    this.alertType = "danger";
-                                } else {
-                                    this.alertType = "success";
-                                }
+                                this.alertType = json.status == "error" ? "danger" : "success";
                                 this.alertMessage = json.result;
                                 this.showAlert = true;
                             }, 1e3);
                         });
                 }
             }
+        },
+        captchaVerify(token) {
+            this.captchaVerified = true;
+            this.captchaToken = token;
         },
         captchaError(event) {
             this.showAlert = true;

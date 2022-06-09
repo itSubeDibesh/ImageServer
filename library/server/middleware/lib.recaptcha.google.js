@@ -44,7 +44,7 @@ class ReCaptcha {
                     payload = JSON.stringify({
                         secret: secretKey,
                         response: request.body.captcha,
-                        remoteip: req.headers['x-forwarded-for'] || req.connection.remoteAddress
+                        remoteip: request.headers['x-forwarded-for'] || request.connection.remoteAddress
                     }),
                     // Preparing URL
                     url = `https://www.google.com/recaptcha/api/siteverify?${payload}`,

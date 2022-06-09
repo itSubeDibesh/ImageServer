@@ -68,6 +68,14 @@ const routes = [
     },
     component: () => import('../views/ACCESS_ACCOUNT/DashboardView.vue')
   },
+  {
+    path: '/verify',
+    name: 'VerifyAccount',
+    meta: {
+      title: 'Verify Account'
+    },
+    component: () => import('../views/ACCESS_ACCOUNT/VerifyAccountView.vue')
+  },
   //#endregion
   //#region MISCELLANEOUS
   {

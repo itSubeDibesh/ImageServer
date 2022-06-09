@@ -15,8 +15,7 @@ const
 // Image Test
 const
     // ImageDb = Database.currentTable("image"),
-    Columns = ["UserId", "FileName", "Extension", "FilePath", "FileType", "FileSize"];
-
+    Columns = ["ImageId", "UserId", "FileName", "Extension", "FilePath", "FileType", "FileSize", "UploadDate"];
 //SQLite3 database/SQLite/ImageServer.db < database/Script/ImageServer.sql -> DB TEST
 // First of All Work on Database and Store Image Details first on DB and Create Foreign Key Afterwords
 

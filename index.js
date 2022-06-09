@@ -12,7 +12,7 @@ if (process.env.WORK_ENV.includes('development')) {
     // Deleting Directories On Each Start
     const Directories =
         [
-            "./database/SQLite",
+            // "./database/SQLite",
             "./logs"
         ];
     Directories.forEach(directory => {

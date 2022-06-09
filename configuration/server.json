@@ -71,6 +71,7 @@
         "secretKey": "6Ldgc0cgAAAAAIOayrU40OKE_GDJdzdKJjSJUtKV",
         "endPoints": [
             "/api/auth/register",
+            "/api/auth/verification",
             "/api/auth/login"
         ]
     }

@@ -8,6 +8,8 @@ export default createStore({
     userLoggedIn: false,
     timeOutHandler: {},
     intervals: {},
+    siteKey: "6Ldgc0cgAAAAAHjqNfj5q4qWUruiHOnlF_3iF37k",
+    alert: {}
   },
   getters: {
     loading(state) {
@@ -24,6 +26,12 @@ export default createStore({
     },
     timeOut(state) {
       return state.timeOutHandler
+    },
+    getSiteKey(state) {
+      return state.siteKey
+    },
+    getAlert(state) {
+      return state.alert
     }
   },
   mutations: {
@@ -63,6 +71,10 @@ export default createStore({
     },
     removeTimeout(state, payload) {
       state.timeOutHandler[payload.title] = {}
+    },
+    // Alert Mutations
+    setAlert(state, payload) {
+      state.alert = payload
     }
   },
   actions: {

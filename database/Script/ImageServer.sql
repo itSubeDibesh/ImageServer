@@ -16,7 +16,7 @@ CREATE TABLE
         Email TEXT NOT NULL UNIQUE,
         PASSWORD TEXT NOT NULL,
         UserGroup VARCHAR(20) NOT NULL DEFAULT 'USER',
-        IsDissabled BOOLEAN NOT NULL DEFAULT 1,
+        IsDisabled BOOLEAN NOT NULL DEFAULT 1,
         VerificationToken TEXT NULL,
         VerificationStatus BOOLEAN NOT NULL DEFAULT 0,
         CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
