@@ -1,42 +1,44 @@
 <template>
     <div class="mb-3">
         <div class="row">
-            <div class="mb-3 col-lg-6 col-md-6 d-none d-lg-block">
-                <img :src="isDarkMode ? images.light : images.dark" class="img img-fluid" alt="Verify Image">
-            </div>
             <div class="mb-3 col-sm-12 col-md-12 col-lg-6">
                 <div class="card">
                     <div class="card-body"
                         :class="{ 'text-light bg-dark border-light': isDarkMode, 'text-dark bg-light border-dark': !isDarkMode }">
                         <div class="card-head mb-4">
                             <h4 class="card-title" :class="{ 'text-danger': isDarkMode, 'text-success': !isDarkMode }">
-                                <strong>Verify Account ✅</strong>
+                                <strong>Forgot Password</strong>
                             </h4>
+                            <p class="text-center">Don't Worry, We will send you an email to reset your password.</p>
                         </div>
                         <Alert :type="alertType" :showAlert="showAlert" :message="alertMessage"
                             @hideAlert="hideAlert" />
                         <PreLoader v-if="showPreloader" :keepLoading="true" />
                         <form v-on:submit="onSubmit" v-else>
                             <div class="form-floating text-dark mb-3">
-                                <input type="text" class="form-control" id="email" required :value="email" disabled>
+                                <input type="email" class="form-control" id="email" required v-on:input="checkEmail">
                                 <label for="email">Email</label>
-                            </div>
-                            <div class="form-floating text-dark mb-3">
-                                <input type="text" class="form-control" id="verificationToken" required :value="token"
-                                    disabled>
-                                <label for="verificationToken">Verification Code</label>
+                                <div class="valid-feedback">
+                                    Looks good!
+                                </div>
+                                <div class="invalid-feedback">
+                                    Invalid email.
+                                </div>
                             </div>
                             <div class="form-floating text-center mb-3">
                                 <vue-recaptcha ref="recaptcha" :sitekey="siteKey" @verify="captchaVerify"
                                     @error="captchaError" @expired="captchaExpired" />
                             </div>
                             <div class="text-center mb-3">
-                                <button type="submit" class="btn btn-primary">Verify Account
-                                    <i class="fa-solid fa-user-shield"></i></button>
+                                <button type="submit" class="btn btn-primary">Send Request
+                                    <i class="fa-solid fa-paper-plane"></i></button>
                             </div>
                         </form>
                     </div>
                 </div>
+            </div>
+            <div class="mb-3 col-lg-6 col-md-6 d-none d-lg-block">
+                <img :src="isDarkMode ? images.light : images.dark" class="img img-fluid" alt="Verify Image">
             </div>
         </div>
     </div>
@@ -48,8 +50,10 @@ import Alert from '@/components/Alert.vue';
 import PreLoader from '@/components/PreLoader.vue';
 import { VueRecaptcha } from 'vue-recaptcha';
 
+const emailRegex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+
 export default {
-    name: 'VerifyAccount',
+    name: 'ForgotPassword',
     components: {
         Alert,
         PreLoader,
@@ -59,11 +63,9 @@ export default {
         return {
             siteKey: this.$store.getters.getSiteKey,
             images: {
-                dark: require('@/assets/verify-pana-dark.svg'),
-                light: require('@/assets/verify-pana-light.svg')
+                dark: require('@/assets/forgot-amico-dark.svg'),
+                light: require('@/assets/forgot-amico-light.svg')
             },
-            token: '',
-            email: '',
             CSRF: "",
             alertType: '',
             alertMessage: '',
@@ -71,20 +73,6 @@ export default {
             showAlert: false,
             captchaVerified: false,
             captchaToken: "",
-        }
-    },
-    beforeMount() {
-        if (window.location.search != null && window.location.search.includes('token') && window.location.search.includes('email')) {
-            this.token = window.location.search.replace('?', '').split('=')[1].split('&')[0]
-            this.email = window.location.search.replace('?', '').split('=')[2];
-        }
-        else {
-            this.$store.commit('setAlert', {
-                type: 'danger',
-                message: 'Unable to verify account with this link. Please checky your email and try again.',
-                showAlert: true
-            });
-            this.$router.push('/');
         }
     },
     mounted() {
@@ -106,24 +94,49 @@ export default {
             this.alertType = event.type;
             this.alertMessage = event.message;
         },
+        toggle: (target) => (source = '', destination = '') => {
+            if (source != "") target.classList.remove(source);
+            if (destination != "") target.classList.add(destination);
+        },
+        checkEmail(event) {
+            // Checking Required Length is not 0
+            if (event.target.value.length != 0) {
+                // Email Regex Pattern
+                if (event.target.value.match(emailRegex)) {
+                    this.toggle(event.target)('is-invalid', 'is-valid')
+                } else {
+                    this.toggle(event.target)('is-valid', 'is-invalid')
+                }
+            } else {
+                // Resetting 
+                this.toggle(event.target)('is-valid')
+                this.toggle(event.target)('is-invalid')
+            }
+        },
         onSubmit(event) {
             event.preventDefault();
-            if (this.captchaVerified == false) {
+            const email = document.getElementById('email').value;
+            if (!email.match(emailRegex)) {
+                this.showAlert = true;
+                this.alertType = 'danger';
+                this.alertMessage = 'Email is required.';
+            }
+            else if (this.captchaVerified == false) {
                 this.showAlert = true;
                 this.alertType = "danger";
                 this.alertMessage = `Captcha Not Verified, Please Check and Try Again.`;
-            } else {
+            }
+            else {
                 this.showAlert = false;
                 // Captcha check -> Before Payload Hit 
                 const Payload = {
-                    email: this.email,
-                    verificationToken: this.token,
+                    email,
                     captcha: this.captchaToken
                 }
-                // Show Preloader on verification button unless response if error hide preloader and show error in alert component
+                // Show Preloader on forgot button unless response if error hide preloader and show error in alert component
                 this.showPreloader = true;
-                // Make a request to verification the user api
-                fetch('/api/auth/verification', {
+                // Make a request to forgot the user api
+                fetch('/api/auth/forgot', {
                     method: 'POST',
                     credentials: 'same-origin',
                     headers: {
@@ -142,8 +155,13 @@ export default {
                             if (json.success) {
                                 // On Success Redirect To Login Page
                                 setTimeout(() => {
-                                    this.$router.push('/login');
-                                }, 3e3);
+                                    this.alertType = json.status = "info";
+                                    this.alertMessage = "Redirecting to login page...";
+                                    this.showAlert = true;
+                                    setTimeout(() => {
+                                        this.$router.push('/login');
+                                    }, 3e3);
+                                }, 3e3)
                             }
                         }, 1e3);
                     });

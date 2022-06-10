@@ -44,13 +44,13 @@
                             <div class="col-sm-12 col-md-6 col-lg-6">
                                 <div class="form-check text-start mb-3">
                                     <input type="checkbox" class="form-check-input" id="exampleCheck1">
-                                    <label class="form-check-label" for="exampleCheck1">Remember Email <i
-                                            class="fas fa-envelope text-primary"></i></label>
+                                    <label class="form-check-label" for="exampleCheck1">Remember Email
+                                        <i class="fas fa-envelope text-primary"></i></label>
                                 </div>
                             </div>
                             <div class="col-sm-12 col-md-6 col-lg-6 text-end mb-3">
                                 <strong>
-                                    <a href="#" class="link-info">Forget Password?</a>
+                                    <router-link to="/forgot" class="link-info">Forgot Password?</router-link>
                                 </strong>
                             </div>
                         </div>
@@ -103,6 +103,25 @@ export default {
             this.$store.commit('isLoggedIn')
             localStorage.setItem('isLoggedIn', true);
             this.$router.push('/dashboard');
+        },
+        toggle: (target) => (source = '', destination = '') => {
+            if (source != "") target.classList.remove(source);
+            if (destination != "") target.classList.add(destination);
+        },
+        checkEmail(event) {
+            // Checking Required Length is not 0
+            if (event.target.value.length != 0) {
+                // Email Regex Pattern
+                if (event.target.value.match(/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/)) {
+                    this.toggle(event.target)('is-invalid', 'is-valid')
+                } else {
+                    this.toggle(event.target)('is-valid', 'is-invalid')
+                }
+            } else {
+                // Resetting 
+                this.toggle(event.target)('is-valid')
+                this.toggle(event.target)('is-invalid')
+            }
         },
     },
     computed: {

@@ -15,6 +15,7 @@ CREATE TABLE
         FullName VARCHAR(200) NOT NULL,
         Email TEXT NOT NULL UNIQUE,
         PASSWORD TEXT NOT NULL,
+        IsLoggedIn BOOLEAN NOT NULL DEFAULT 0,
         UserGroup VARCHAR(20) NOT NULL DEFAULT 'USER',
         IsDisabled BOOLEAN NOT NULL DEFAULT 1,
         VerificationToken TEXT NULL,
@@ -31,6 +32,35 @@ UPDATE
 UPDATE users
 SET UpdatedAt = CURRENT_TIMESTAMP
 WHERE UserId = NEW.UserId;
+
+END;
+
+-- Old Password Table
+-- Creating `old_passwords` Table
+CREATE TABLE
+    IF NOT EXISTS old_passwords (
+        PasswordId INTEGER PRIMARY KEY AUTOINCREMENT,
+        UserId INTEGER NOT NULL,
+        ResetToken TEXT NULL,
+        HashedPassword TEXT NOT NULL,
+        TokenTimeout INTEGER NOT NULL DEFAULT 6e5,
+        ResetSuccess BOOLEAN NOT NULL DEFAULT 0,
+        HasExpired BOOLEAN NOT NULL DEFAULT 0,
+        CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UpdatedAt DATETIME NULL,
+        CONSTRAINT fk_user_password FOREIGN KEY (UserId) REFERENCES users (UserId)
+        ON
+        DELETE CASCADE
+    );
+
+-- Creating `password_update_at_trigger` Trigger
+CREATE TRIGGER
+    IF NOT EXISTS password_update_at_trigger AFTER
+UPDATE
+    ON PASSWORD BEGIN
+UPDATE PASSWORD
+SET UpdatedAt = CURRENT_TIMESTAMP
+WHERE PasswordId = NEW.PasswordId;
 
 END;
 

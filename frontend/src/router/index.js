@@ -76,6 +76,22 @@ const routes = [
     },
     component: () => import('../views/ACCESS_ACCOUNT/VerifyAccountView.vue')
   },
+  {
+    path: '/reset',
+    name: 'ResetPassword',
+    meta: {
+      title: 'Reset Password'
+    },
+    component: () => import('../views/ACCESS_ACCOUNT/ResetView.vue')
+  },
+  {
+    path: '/forgot',
+    name: 'ForgotPassword',
+    meta: {
+      title: 'Forgot Password'
+    },
+    component: () => import('../views/ACCESS_ACCOUNT/ForgotPasswordView.vue')
+  },
   //#endregion
   //#region MISCELLANEOUS
   {

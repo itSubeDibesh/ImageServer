@@ -233,6 +233,7 @@ export default {
                 }
             }
         })
+        this.typingPassword = false;
     },
     methods: {
         hideAlert(event) {
@@ -276,6 +277,7 @@ export default {
                     }
                     // Show Preloader on register button unless response if error hide preloader and show error in alert component
                     this.showPreloader = true;
+                    this.typingPassword = false;
                     // Make a request to register the user api
                     fetch('/api/auth/register', {
                         method: 'POST',

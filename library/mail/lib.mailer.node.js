@@ -118,7 +118,7 @@ class Email {
                     this.Logger.log(`✉ Error in sending Email to ${EmailAddress} With [${error.message}] And ${error.stack}`);
                 }
                 if (info) {
-                    this.Logger.log(`✉ Email sent to ${EmailAddress} with [${JSON.stringify(EmailPayload)}]`);
+                    this.Logger.log(`✉ Email sent to ${EmailAddress} with [${JSON.stringify({ from: `"${this.AppName}" <${this.From}>`, to: `"${User}" <${EmailAddress}>`, subject: Subject })}]`);
                 }
             }
         )
