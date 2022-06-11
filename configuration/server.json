@@ -30,7 +30,11 @@
         "limit": {
             "register": {
                 "requests": 3,
-                "minutes": 1
+                "minutes": 10
+            },
+            "login": {
+                "requests": 5,
+                "minutes": 10
             }
         }
     },
@@ -72,7 +76,9 @@
         "endPoints": [
             "/api/auth/register",
             "/api/auth/verification",
-            "/api/auth/login"
+            "/api/auth/login",
+            "/api/auth/forgot",
+            "/api/auth/reset"
         ]
     }
 }

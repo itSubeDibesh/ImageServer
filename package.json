@@ -51,5 +51,14 @@
     "nodemon": "^2.0.16",
     "swagger-jsdoc": "^6.2.1",
     "swagger-ui-express": "^4.4.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/itSubeDibesh/ImageServer.git"
+  },
+  "author": "Dibesh Raj Subedi",
+  "bugs": {
+    "url": "https://github.com/itSubeDibesh/ImageServer/issues"
+  },
+  "homepage": "https://github.com/itSubeDibesh/ImageServer#readme"
 }

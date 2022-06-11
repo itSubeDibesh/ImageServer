@@ -24,7 +24,7 @@ class ReCaptcha {
                 // If Captcha is not enabled then skip
                 CaptchaConfig.endPoints.forEach(endPoint => {
                     // If Should search for captcha in the endPoint
-                    if (request.url.includes(endPoint)) Includes.push(endPoint);
+                    if (request.url == endPoint) Includes.push(endPoint);
                 })
                 // If Captcha is not enabled then skip
                 if (Includes.length === 0)
