@@ -2,14 +2,22 @@ import { createStore } from 'vuex'
 
 export default createStore({
   state: {
+    // Preloader
     preLoader: false,
+    // Night Mode
     nightMode: false,
-    internetConnected: false,
-    userLoggedIn: false,
+    // Timeout on 429
     timeOutHandler: {},
     intervals: {},
+    // Alert
+    alert: {},
+    // Internet Connected
+    internetConnected: false,
+    // Captcha
     siteKey: "6Ldgc0cgAAAAAHjqNfj5q4qWUruiHOnlF_3iF37k",
-    alert: {}
+    // Login Store
+    user: {},
+    loggedIn: false,
   },
   getters: {
     loading(state) {
@@ -21,8 +29,11 @@ export default createStore({
     online(state) {
       return state.internetConnected
     },
-    loggedIn(state) {
-      return state.userLoggedIn
+    userLoggedIn(state) {
+      return {
+        loggedIn: state.loggedIn,
+        user: state.user
+      }
     },
     timeOut(state) {
       return state.timeOutHandler
@@ -57,12 +68,9 @@ export default createStore({
       state.internetConnected = false
     },
     // isLoggedIn Mutations
-    isLoggedIn(state) {
-      state.userLoggedIn = true
-    },
-    // isLoggedOut Mutations
-    isLoggedOut(state) {
-      state.userLoggedIn = false
+    isLoggedIn(state, payload) {
+      state.loggedIn = payload.loggedIn
+      state.user = payload.user
     },
     // Timeout Handler Mutations
     setTimeOut(state, payload) {

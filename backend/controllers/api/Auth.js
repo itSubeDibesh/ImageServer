@@ -10,15 +10,19 @@ const
     // Importing required modules
     { Router, ExpressValidator, SHA_512,
         ResponseLogger, csrfProtection,
-        setRequestLimiter, minToMs, MailHandel,
+        setRequestLimiter, DevelopmentEnv, MailHandel,
         ServerConfig, RandomString, getDatabase,
-        QueryBuilder, DevelopmentEnv
+        timeExceeded, monthToMs, minToMs,
+        QueryBuilder,
+
     } = require("../../../library/server/lib.utility.express"),
     // Extracting Packages
     Database = getDatabase(),
     // Extracting Limits
     RegisterRequestLimit = ServerConfig.server.limit.register,
     LoginRequestLimit = ServerConfig.server.limit.login,
+    // Extracting Expires
+    ResetExpiry = ServerConfig.server.expiry.password,
     // Extracting Router from util
     AuthRouter = Router(),
     // Extracting ExpressValidator from util
@@ -30,13 +34,13 @@ const
     User = {
         InsertColumns: ["UserName", "FullName", "Email", "PASSWORD", "VerificationToken"],
         SelectResetColumns: ["UserId", "UserName", "Email", "PASSWORD"],
-        SelectColumns: ["UserId", "UserName", "FullName", "Email", "UserGroup", "IsDisabled", "IsLoggedIn", "VerificationStatus", "CreatedAt", "UpdatedAt"],
+        SelectColumns: ["UserId", "UserName", "FullName", "Email", "UserGroup", "IsDisabled", "IsLoggedIn", "VerificationStatus", "LastPasswordResetDate", "CreatedAt", "UpdatedAt"],
         VerificationColumns: ["IsDisabled", "VerificationStatus"],
-        ResetColumns: ["PASSWORD", "IsLoggedIn"]
+        ResetColumns: ["PASSWORD", "IsLoggedIn", "LastPasswordResetDate"]
     },
     Old_Passwords = {
         InsertColumns: ["UserId", "ResetToken", "HashedPassword"],
-        SelectColumns: ["PasswordId", "UserId", "ResetToken", "HashedPassword", "ResetSuccess", "HasExpired", "TokenTimeout", "CreatedAt", "UpdatedAt"],
+        SelectColumns: ["PasswordId", "UserId", "ResetToken", "HashedPassword", "ResetSuccess", "HasExpired", "CreatedAt", "UpdatedAt"],
         UpdateColumns: ["ResetSuccess", "HasExpired"]
     }
     ;
@@ -96,7 +100,7 @@ AuthRouter.post("/login",
         check("email", "Email is not valid").isEmail(),
     ],
     // Setup Request Limit -> Requests per minute -> 3 request 10 minutes 
-    setRequestLimiter(minToMs(RequestLimit.minutes), RequestLimit.requests),
+    setRequestLimiter(minToMs(LoginRequestLimit.minutes), LoginRequestLimit.requests),
     // Request Handel
     (request, response) => {
         // Receive Request From CLient With UserName and Password
@@ -104,6 +108,38 @@ AuthRouter.post("/login",
         // -> Store User Login Credentials on Session / Server Side and CLient Side
         // -> Send Response to Client
         // Handle Login Request
+
+
+        let Payload = {
+            success: false,
+            status: "error",
+            result: "Email or Password not found in the request.",
+        },
+            statusCode = 400,
+            statusMessage = "Bad Request";
+        // Error Check from Request
+        if (!validationResult(request).isEmpty()) {
+            Payload.success = false;
+            Payload.status = "error";
+            Payload.result = "Email or Password not found in the request or might be invalid.";
+            statusCode = 400;
+            statusMessage = "Bad Request";
+            // Logging the response
+            ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+            // Sending the response
+            response.status(statusCode).send(Payload);
+        }
+        // When All Request Condition Satisfies
+        else {
+            // Extracting Request Data
+            // Query Db Check if User is Valid and Update Details -> Is LoggedIn
+            // -> Check if LastPasswordResetDate is Less than x time -> Reset Password -> Send Email
+            // -> Store User Login Credentials on Session / Server Side and CLient Side
+            // -> Send Response to Client
+        }
+    })
+AuthRouter
+    .post('/logout', (request, response) => {
         response.send({
             status: "success",
             message: "Welcome to SniperCode API",
@@ -404,7 +440,7 @@ AuthRouter.post("/forgot",
                                         message: `Follow this link to reset your password ${UserDetails.UserName}.<br><br>
                                                     <span class="text-center"><a href="${ResetEndPoint}" target="_blank" class="btn btn-success">CLick Me 👆</a></span>
                                                     <br> OR --> <a href="${ResetEndPoint}" target="_blank" class="link-success">${ResetEndPoint}</a><br>
-                                                    <strong class="text-danger">This Link is Only Valid for 10 Minutes.</strong>
+                                                    <strong class="text-danger">This Link is Only Valid for ${ResetExpiry.resetExpireInMinute} Minutes.</strong>
                                                     `,
                                     }
                                 // Generate Token Store on Old Password DB INcluding User id -> Send Email to User with Link to reset password 
@@ -609,124 +645,149 @@ AuthRouter.post("/reset",
                     (resp_i => {
                         if (resp_i.status) {
                             // Extract Other Details and Evaluate Time adding up timeout
-                            const
-                                resp_i_row = resp_i.rows[0],
-                                resp_i_pwd_id = resp_i_row.PasswordId,
-                                hasTimeExpired = resp_i_row.CreatedAt + resp_i_row.TokenTimeout < new Date().getTime();
-                            // Throw Error if Timeout Expired
-                            if (hasTimeExpired || resp_i_row.HasExpired) {
-                                // Error
+                            if (resp_i.rows.length != 0) {
+                                const
+                                    resp_i_row = resp_i.rows[0],
+                                    resp_i_pwd_id = resp_i_row.PasswordId,
+                                    // Check if Current Time is greater than Check Time
+                                    hasExceed = timeExceeded(new Date().getTime(), Date.parse(resp_i_row.CreatedAt), minToMs(ResetExpiry.resetExpireInMinute));
+                                // Throw Error if Timeout Expired
+                                if (hasExceed || resp_i_row.HasExpired) {
+                                    // Delete all the records from Old Password Table Where Status is Not Verified
+                                    Database
+                                        .executeQuery(
+                                            OldPasswordTable
+                                                .delete()
+                                                .where(`UserId = ${resp_i_row.UserId} AND ResetSuccess = 0`)
+                                                .build(),
+                                            (res_del => {
+                                                // Error
+                                                Payload.success = false;
+                                                Payload.status = "error";
+                                                Payload.result = "Reset Request Expired, Please Try New Request.";
+                                                statusCode = 400;
+                                                statusMessage = "Bad Request";
+                                                // Logging the response
+                                                ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                                // Sending the response
+                                                response.status(statusCode).send(Payload);
+                                            })
+                                        )
+                                }
+                                else {
+                                    // Fetch top 5 old passwords of User using id Fetched from Old Password DB Except current Query Based on Ascending Date
+                                    Database
+                                        .executeQuery(
+                                            OldPasswordTable.select(QueryBuilder.selectType.COLUMN, Old_Passwords.SelectColumns)
+                                                .where(`UserId = ${userId} AND PasswordId != ${resp_i_pwd_id} AND ResetSuccess = 1 AND HasExpired = 1`)
+                                                .orderBy(["CreatedAt"], QueryBuilder.orderType.DESC)
+                                                .limit(5)
+                                                .build(),
+                                            (resp_ii => {
+                                                if (resp_ii.status) {
+                                                    // Check Current Hash Matches any if so return error
+                                                    // Else Password Accepted Update on User Table and OldPasswordDbTable
+                                                    const
+                                                        newHashedPAssword = SHA_512(request.body.email + request.body.password + "IMAGE_SERVER_HASH"),
+                                                        resp_ii_rows = resp_ii.rows,
+                                                        resp_ii_rows_length = resp_ii_rows.length;
+                                                    let matchCount = 0;
+                                                    for (let i = 0; i < resp_ii_rows_length; i++) { if (resp_ii_rows[i].HashedPassword === newHashedPAssword) { matchCount++; break; } }
+                                                    // > sign is used to check if matchCount is greater than 0
+                                                    if (newHashedPAssword === resp_i_row.HashedPassword) { matchCount++; }
+                                                    if (matchCount > 0) {
+                                                        // Error
+                                                        Payload.success = false;
+                                                        Payload.status = "error";
+                                                        Payload.result = "Password already exists in the top 5 old passwords.";
+                                                        statusCode = 400;
+                                                        statusMessage = "Bad Request";
+                                                        // Logging the response
+                                                        ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                                        // Sending the response
+                                                        response.status(statusCode).send(Payload);
+                                                    } else {
+                                                        // UPDATE USER Db
+                                                        Database
+                                                            .executeQuery(
+                                                                UserTable
+                                                                    .update(User.ResetColumns, [`'${newHashedPAssword}'`, false, 'CURRENT_TIMESTAMP'])
+                                                                    .where(`UserId = ${userId}`)
+                                                                    .build()
+                                                                ,
+                                                                (response_user) => {
+                                                                    if (response_user.status) {
+                                                                        // UPDATE OLD PASSWORD Db
+                                                                        Database
+                                                                            .executeQuery(
+                                                                                OldPasswordTable
+                                                                                    .update(Old_Passwords.UpdateColumns, [true, true])
+                                                                                    .where(`UserId = ${userId} AND PasswordId = ${resp_i_pwd_id}`)
+                                                                                    .build()
+                                                                                ,
+                                                                                (response_old_password) => {
+                                                                                    if (response_old_password.status) {
+                                                                                        // Success
+                                                                                        Payload.success = true;
+                                                                                        Payload.status = "success";
+                                                                                        Payload.result = "Password Reset Successfully. Redirecting to Login Page.";
+                                                                                        statusCode = 200;
+                                                                                        statusMessage = "OK";
+                                                                                    } else {
+                                                                                        // Error
+                                                                                        Payload.success = false;
+                                                                                        Payload.status = "error";
+                                                                                        Payload.result = "Password Reset Failed. Please Try Again.";
+                                                                                        statusCode = 500;
+                                                                                        statusMessage = "Internal Server Error";
+                                                                                    }
+                                                                                    // Logging the response
+                                                                                    ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                                                                    // Sending the response
+                                                                                    response.status(statusCode).send(Payload);
+                                                                                })
+                                                                    } else {
+                                                                        // Error
+                                                                        Payload.success = false;
+                                                                        Payload.status = "error";
+                                                                        Payload.result = "Error in updating Password.";
+                                                                        statusCode = 500;
+                                                                        statusMessage = "Internal Server Error";
+                                                                        // Logging the response
+                                                                        ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                                                        // Sending the response
+                                                                        response.status(statusCode).send(Payload);
+                                                                    }
+                                                                }
+                                                            )
+                                                    }
+                                                }
+                                                else {
+                                                    // Error
+                                                    Payload.success = false;
+                                                    Payload.status = "error";
+                                                    Payload.result = "Reset Request Failed, Please Try Again Later.";
+                                                    statusCode = 500;
+                                                    statusMessage = "Internal Server Error";
+                                                    // Logging the response
+                                                    ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                                    // Sending the response
+                                                    response.status(statusCode).send(Payload);
+                                                }
+                                            })
+                                        )
+                                }
+                            } else {
+                                // Return Token Invalid Error
                                 Payload.success = false;
                                 Payload.status = "error";
-                                Payload.result = "Reset Request Expired, Please Try Again.";
+                                Payload.result = "Invalid Token Or Token Already Used.";
                                 statusCode = 400;
                                 statusMessage = "Bad Request";
                                 // Logging the response
                                 ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
                                 // Sending the response
                                 response.status(statusCode).send(Payload);
-                            }
-                            else {
-                                // Fetch top 5 old passwords of User using id Fetched from Old Password DB Except current Query Based on Ascending Date
-                                Database
-                                    .executeQuery(
-                                        OldPasswordTable.select(QueryBuilder.selectType.COLUMN, Old_Passwords.SelectColumns)
-                                            .where(`UserId = ${userId} AND PasswordId != ${resp_i_pwd_id} AND ResetSuccess = 1 AND HasExpired = 1`)
-                                            .orderBy(["CreatedAt"], QueryBuilder.orderType.DESC)
-                                            .limit(5)
-                                            .build(),
-                                        (resp_ii => {
-                                            if (resp_ii.status) {
-                                                // Check Current Hash Matches any if so return error
-                                                // Else Password Accepted Update on User Table and OldPasswordDbTable
-                                                const
-                                                    newHashedPAssword = SHA_512(request.body.email + request.body.password + "IMAGE_SERVER_HASH"),
-                                                    resp_ii_rows = resp_ii.rows,
-                                                    resp_ii_rows_length = resp_ii_rows.length;
-                                                let matchCount = 0;
-                                                for (let i = 0; i < resp_ii_rows_length; i++) { if (resp_ii_rows[i].HashedPassword === newHashedPAssword) { matchCount++; break; } }
-                                                // > sign is used to check if matchCount is greater than 0
-                                                if (matchCount > 0) {
-                                                    // Error
-                                                    Payload.success = false;
-                                                    Payload.status = "error";
-                                                    Payload.result = "Password already exists in the top 5 old passwords.";
-                                                    statusCode = 400;
-                                                    statusMessage = "Bad Request";
-                                                    // Logging the response
-                                                    ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
-                                                    // Sending the response
-                                                    response.status(statusCode).send(Payload);
-                                                } else {
-                                                    // UPDATE USER Db
-                                                    Database
-                                                        .executeQuery(
-                                                            UserTable
-                                                                .update(User.ResetColumns, [`'${newHashedPAssword}'`, false])
-                                                                .where(`UserId = ${userId}`)
-                                                                .build()
-                                                            ,
-                                                            (response_user) => {
-                                                                if (response_user.status) {
-                                                                    // UPDATE OLD PASSWORD Db
-                                                                    Database
-                                                                        .executeQuery(
-                                                                            OldPasswordTable
-                                                                                .update(Old_Passwords.UpdateColumns, [true, true])
-                                                                                .where(`UserId = ${userId} AND PasswordId = ${resp_i_pwd_id}`)
-                                                                                .build()
-                                                                            ,
-                                                                            (response_old_password) => {
-                                                                                if (response_old_password.status) {
-                                                                                    // Success
-                                                                                    Payload.success = true;
-                                                                                    Payload.status = "success";
-                                                                                    Payload.result = "Password Reset Successfully. Redirecting to Login Page.";
-                                                                                    statusCode = 200;
-                                                                                    statusMessage = "OK";
-                                                                                } else {
-                                                                                    // Error
-                                                                                    Payload.success = false;
-                                                                                    Payload.status = "error";
-                                                                                    Payload.result = "Password Reset Failed. Please Try Again.";
-                                                                                    statusCode = 500;
-                                                                                    statusMessage = "Internal Server Error";
-                                                                                }
-                                                                                // Logging the response
-                                                                                ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
-                                                                                // Sending the response
-                                                                                response.status(statusCode).send(Payload);
-                                                                            })
-                                                                } else {
-                                                                    // Error
-                                                                    Payload.success = false;
-                                                                    Payload.status = "error";
-                                                                    Payload.result = "Error in updating Password.";
-                                                                    statusCode = 500;
-                                                                    statusMessage = "Internal Server Error";
-                                                                    // Logging the response
-                                                                    ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
-                                                                    // Sending the response
-                                                                    response.status(statusCode).send(Payload);
-                                                                }
-                                                            }
-                                                        )
-                                                }
-                                            }
-                                            else {
-                                                // Error
-                                                Payload.success = false;
-                                                Payload.status = "error";
-                                                Payload.result = "Reset Request Failed, Please Try Again Later.";
-                                                statusCode = 500;
-                                                statusMessage = "Internal Server Error";
-                                                // Logging the response
-                                                ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
-                                                // Sending the response
-                                                response.status(statusCode).send(Payload);
-                                            }
-                                        })
-                                    )
                             }
                         } else {
                             // Error

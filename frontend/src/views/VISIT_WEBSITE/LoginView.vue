@@ -100,8 +100,15 @@ export default {
             event.preventDefault();
             let email = event.target.email.value;
             let password = event.target.floatingPassword.value;
-            this.$store.commit('isLoggedIn')
-            localStorage.setItem('isLoggedIn', true);
+            this.$store.commit('isLoggedIn', {
+                loggedIn: true,
+                user: {
+                    email: email,
+                    password: password,
+                    username: "Dibesh"
+                }
+            })
+            // localStorage.setItem('isLoggedIn', true);
             this.$router.push('/dashboard');
         },
         toggle: (target) => (source = '', destination = '') => {
@@ -129,7 +136,7 @@ export default {
             return this.$store.getters.appMode;
         },
         isLoggedIn() {
-            return this.$store.getters.loggedIn;
+            return this.$store.getters.userLoggedIn;
         },
     }
 }

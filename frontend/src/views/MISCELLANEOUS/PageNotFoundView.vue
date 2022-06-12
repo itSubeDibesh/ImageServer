@@ -42,10 +42,7 @@ export default {
     computed: {
         isDarkMode() {
             return this.$store.getters.appMode;
-        },
-        isLoggedIn() {
-            return this.$store.getters.loggedIn;
-        },
+        }
     }
 }
 </script>

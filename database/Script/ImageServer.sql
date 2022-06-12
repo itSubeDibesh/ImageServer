@@ -19,8 +19,9 @@ CREATE TABLE
         UserGroup VARCHAR(20) NOT NULL DEFAULT 'USER',
         IsDisabled BOOLEAN NOT NULL DEFAULT 1,
         VerificationToken TEXT NULL,
+        LastPasswordResetDate DATETIME NULL DEFAULT (DATETIME('now', 'localtime')),
         VerificationStatus BOOLEAN NOT NULL DEFAULT 0,
-        CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        CreatedAt DATETIME DEFAULT (DATETIME('now', 'localtime')),
         UpdatedAt DATETIME NULL
     );
 
@@ -30,7 +31,7 @@ CREATE TRIGGER
 UPDATE
     ON users BEGIN
 UPDATE users
-SET UpdatedAt = CURRENT_TIMESTAMP
+SET UpdatedAt = (DATETIME('now', 'localtime'))
 WHERE UserId = NEW.UserId;
 
 END;
@@ -43,10 +44,9 @@ CREATE TABLE
         UserId INTEGER NOT NULL,
         ResetToken TEXT NULL,
         HashedPassword TEXT NOT NULL,
-        TokenTimeout INTEGER NOT NULL DEFAULT 6e5,
         ResetSuccess BOOLEAN NOT NULL DEFAULT 0,
         HasExpired BOOLEAN NOT NULL DEFAULT 0,
-        CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        CreatedAt DATETIME DEFAULT (DATETIME('now', 'localtime')),
         UpdatedAt DATETIME NULL,
         CONSTRAINT fk_user_password FOREIGN KEY (UserId) REFERENCES users (UserId)
         ON
@@ -59,7 +59,7 @@ CREATE TRIGGER
 UPDATE
     ON PASSWORD BEGIN
 UPDATE PASSWORD
-SET UpdatedAt = CURRENT_TIMESTAMP
+SET UpdatedAt = (DATETIME('now', 'localtime'))
 WHERE PasswordId = NEW.PasswordId;
 
 END;
@@ -75,7 +75,7 @@ CREATE TABLE
         FilePath TEXT NOT NULL,
         FileType VARCHAR(10) NOT NULL,
         FileSize INTEGER NOT NULL,
-        UploadDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UploadDate DATETIME DEFAULT (DATETIME('now', 'localtime')),
         CONSTRAINT fk_user_image FOREIGN KEY (UserId) REFERENCES users (UserId)
         ON
         DELETE CASCADE

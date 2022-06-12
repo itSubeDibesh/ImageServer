@@ -67,9 +67,6 @@ export default {
     isDarkMode() {
       return this.$store.getters.appMode;
     },
-    isLoggedIn() {
-      return this.$store.getters.loggedIn;
-    },
   }
 }
 </script>

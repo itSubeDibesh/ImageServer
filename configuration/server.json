@@ -36,6 +36,12 @@
                 "requests": 5,
                 "minutes": 10
             }
+        },
+        "expiry": {
+            "password": {
+                "renewalInMonths": 3,
+                "resetExpireInMinute": 10
+            }
         }
     },
     "image": {

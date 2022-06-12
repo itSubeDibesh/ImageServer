@@ -84,6 +84,33 @@ class Utility {
         return minutes * 6e4;
     }
     /**
+     * @static Converts Month to MilliSeconds
+     * @memberof Utility 
+     * @param {int} month 
+     * @returns {Number}
+     */
+    static monthToMs = function (month) {
+        const
+            Days = 30,
+            Hours = 24,
+            Minutes = 60,
+            Seconds = 60,
+            MilliSeconds = 1e3;
+        return month * Days * Hours * Minutes * Seconds * MilliSeconds;
+    }
+    /**
+     * @static Checks If time Has Expired 
+     * @memberof Utility
+     * @param {Number} endTime -> Current Mostly
+     * @param {Number} startTime -> Stamp from Db
+     * @param {Number} timeLimit -> In Ms
+     * @returns {Boolean}
+     */
+    static timeExceeded = function (endTime, startTime, timeLimit) {
+        console.log("Times:", endTime, startTime, endTime - startTime, timeLimit)
+        return endTime - startTime > timeLimit;
+    }
+    /**
       * @description Returns The Request Rate Limiter as per configuration -> use in Request header
       * @summary Allows to send max request within defined windowMs
       * @param {number} windowMs -( 1e3*60*15) in MilliSeconds 

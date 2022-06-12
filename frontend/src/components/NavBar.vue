@@ -2,7 +2,7 @@
     <nav
         :class="{ 'navbar navbar-expand-lg shadow fixed-top': true, 'navbar-dark bg-dark': nightMode, 'nav-light bg-light': !nightMode }">
         <div class="container-fluid">
-            <router-link class="navbar-brand" to="/" v-if="!userLoggedIn">
+            <router-link class="navbar-brand" to="/" v-if="!userLoggedIn.loggedIn">
                 <img alt="Image Server Logo" class="bg-transparent p-2" src="/img/icons/favicon-32x32.png" />
                 <b><span :class="{ 'text-success': !nightMode, 'text-light': nightMode }">image</span>
                     <span :class="{ 'text-dark': !nightMode, 'text-danger': nightMode }">Server</span></b>
@@ -18,56 +18,56 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item" v-if="userLoggedIn">
+                    <li class="nav-item" v-if="userLoggedIn.loggedIn">
                         <router-link class="nav-link text-center"
                             :class="{ active: isActive(`Dashboard`), 'bg-primary text-light': isActive(`Dashboard`) }"
                             aria-current="page" to="/dashboard">
                             <i class="fas fa-gauge"></i> Dashboard
                         </router-link>
                     </li>
-                    <li class="nav-item" v-if="!userLoggedIn">
+                    <li class="nav-item" v-if="!userLoggedIn.loggedIn">
                         <router-link class="nav-link text-center"
                             :class="{ active: isActive(`Home`), 'bg-primary text-light': isActive(`Home`) }"
                             aria-current="page" to="/">
                             <i class="fas fa-home"></i> Home
                         </router-link>
                     </li>
-                    <li class="nav-item" v-if="userLoggedIn">
+                    <li class="nav-item" v-if="userLoggedIn.loggedIn">
                         <router-link class="nav-link text-center"
                             :class="{ active: isActive(`Images`), 'bg-primary text-light': isActive(`Images`) }"
                             aria-current="page" to="/images">
                             <i class="fas fa-image"></i> Images
                         </router-link>
                     </li>
-                    <li class="nav-item" v-if="userLoggedIn">
+                    <li class="nav-item" v-if="userLoggedIn.loggedIn">
                         <router-link class="nav-link text-center"
                             :class="{ active: isActive(`Access`), 'bg-primary text-light': isActive(`Access`) }"
                             aria-current="page" to="/access">
                             <i class="fas fa-universal-access"></i> Access
                         </router-link>
                     </li>
-                    <li class="nav-item" v-if="userLoggedIn">
+                    <li class="nav-item" v-if="userLoggedIn.loggedIn">
                         <router-link class="nav-link text-center"
                             :class="{ active: isActive(`More`), 'bg-primary text-light': isActive(`More`) }"
                             aria-current="page" to="/more">
                             <i class="fas fa-info-circle"></i> More
                         </router-link>
                     </li>
-                    <li class="nav-item" v-if="!userLoggedIn">
+                    <li class="nav-item" v-if="!userLoggedIn.loggedIn">
                         <router-link class="nav-link text-center"
                             :class="{ active: isActive(`About`), 'bg-primary text-light': isActive(`About`) }"
                             aria-current="page" to="/about">
                             <i class="fas fa-circle-info"></i> About
                         </router-link>
                     </li>
-                    <li class="nav-item" v-if="!userLoggedIn">
+                    <li class="nav-item" v-if="!userLoggedIn.loggedIn">
                         <router-link class="nav-link text-center"
                             :class="{ active: isActive(`Contact`), 'bg-primary text-light': isActive(`Contact`) }"
                             aria-current="page" to="/contact">
                             <i class="fas fa-address-card"></i> Contact
                         </router-link>
                     </li>
-                    <li class="nav-item" v-if="!userLoggedIn">
+                    <li class="nav-item" v-if="!userLoggedIn.loggedIn">
                         <router-link class="nav-link text-center"
                             :class="{ active: isActive(`Password Analyzer`), 'bg-primary text-light': isActive(`Password Analyzer`) }"
                             aria-current="page" to="/analyze">
@@ -83,13 +83,13 @@
                             <i :class="{ 'text-dark fas fa-moon': !nightMode, 'text-light fas fa-sun': nightMode }"></i>
                         </div>
                     </li>
-                    <li class="nav-item" v-if="!userLoggedIn">
+                    <li class="nav-item" v-if="!userLoggedIn.loggedIn">
                         <router-link class="nav-link text-center"
                             :class="{ active: isActive(`Register`), 'bg-primary text-light': isActive(`Register`) }"
                             aria-current="page" to="/register"><i class="fas fa-user-plus"></i>
                             Register</router-link>
                     </li>
-                    <li class="nav-item" v-if="!userLoggedIn">
+                    <li class="nav-item" v-if="!userLoggedIn.loggedIn">
                         <router-link class="nav-link text-center"
                             :class="{ active: isActive(`Login`), 'bg-primary text-light': isActive(`Login`) }"
                             aria-current="page" to="/login"><i class="fas fa-key"></i>
@@ -98,14 +98,14 @@
                     <li class="nav-item dropdown" v-else>
                         <a class="nav-link text-center dropdown-toggle" href="#" id="navbarDropdown" role="button"
                             data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-user"></i> @johnDoe
+                            <i class="fas fa-user"></i> {{ userLoggedIn.user.username }}
                         </a>
                         <ul :class="{ 'dropdown-menu': true, ' dropdown-menu-end': true, 'bg-dark': !nightMode, 'bg-light': nightMode }"
                             aria-labelledby="navbarDropdown">
                             <li>
                                 <a :class="{ 'dropdown-item text-center btn': true, 'text-light': !nightMode, 'text-dark': nightMode }"
                                     href="#" id="userDetails">
-                                    <span><i class="fas fa-envelope"></i> debot@starter.com</span>
+                                    <span><i class="fas fa-envelope"></i>{{ userLoggedIn.user.email }}</span>
                                 </a>
                             </li>
                             <li>
@@ -152,8 +152,11 @@ export default {
             }
         },
         logOut() {
-            this.$store.commit('isLoggedOut')
-            localStorage.setItem('isLoggedIn', false);
+            this.$store.commit('isLoggedOut', {
+                loggedIn: false,
+                user: {
+                }
+            })
             this.$router.push('/');
         },
         isActive(pageTitle) {
@@ -185,7 +188,7 @@ export default {
             return this.$store.getters.appMode;
         },
         userLoggedIn() {
-            return this.$store.getters.loggedIn;
+            return this.$store.getters.userLoggedIn;
         }
     }
 };

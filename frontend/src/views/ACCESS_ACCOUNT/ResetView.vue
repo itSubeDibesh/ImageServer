@@ -97,6 +97,13 @@
                                 <button type="submit" class="btn btn-primary">Reset Password
                                     <i class="fa-solid fa-user-shield"></i></button>
                             </div>
+                            <div class="text-center mb-3">
+                                <p>Send a new Request? <strong>
+                                        <router-link to="/forgot" class="link-danger">To Reset Password.
+                                        </router-link>
+                                    </strong>
+                                </p>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -354,9 +361,6 @@ export default {
     computed: {
         isDarkMode() {
             return this.$store.getters.appMode;
-        },
-        isLoggedIn() {
-            return this.$store.getters.loggedIn;
         },
     }
 }
