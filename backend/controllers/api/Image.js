@@ -20,12 +20,20 @@ const
 // First of All Work on Database and Store Image Details first on DB and Create Foreign Key Afterwords
 
 ImageRouter
-    .post("/upload", (request, response) => {
-        // Handle Upload Request
-    })
+    .post("/upload",
+        (request, response) => {
+            response.send({
+                status: "success",
+                result: "Image Uploaded Successfully"
+            });
+        })
 ImageRouter
     .post("/delete", (request, response) => {
         // Handle Delete Request
+        response.send({
+            status: "success",
+            result: "Image Deleted Successfully"
+        });
     })
 ImageRouter
     .post("/view", (request, response) => {

@@ -4,16 +4,26 @@
  *  name: Auth
  *  description: Endpoint to handle Auth related operations
  *  url: /api/auth
+ * components:
+ *  securitySchemes:
+ *      bearerAuth:
+ *          type: http
+ *          scheme: bearer
+ *          in: header
+ *          name: Authorization
+ *          description: Bearer Token
+ *          bearerFormat: JWT
  */
 
 const
     // Importing required modules
-    { Router, ExpressValidator, SHA_512,
+    {
+        Router, ExpressValidator, SHA_512,
         ResponseLogger, csrfProtection,
         setRequestLimiter, DevelopmentEnv, MailHandel,
         ServerConfig, RandomString, getDatabase,
         timeExceeded, monthToMs, minToMs,
-        QueryBuilder,
+        QueryBuilder, JWT
 
     } = require("../../../library/server/lib.utility.express"),
     // Extracting Packages
@@ -23,6 +33,7 @@ const
     LoginRequestLimit = ServerConfig.server.limit.login,
     // Extracting Expires
     ResetExpiry = ServerConfig.server.expiry.password,
+    LoginExpiry = ServerConfig.server.expiry.login,
     // Extracting Router from util
     AuthRouter = Router(),
     // Extracting ExpressValidator from util
@@ -36,7 +47,8 @@ const
         SelectResetColumns: ["UserId", "UserName", "Email", "PASSWORD"],
         SelectColumns: ["UserId", "UserName", "FullName", "Email", "UserGroup", "IsDisabled", "IsLoggedIn", "VerificationStatus", "LastPasswordResetDate", "CreatedAt", "UpdatedAt"],
         VerificationColumns: ["IsDisabled", "VerificationStatus"],
-        ResetColumns: ["PASSWORD", "IsLoggedIn", "LastPasswordResetDate"]
+        ResetColumns: ["PASSWORD", "IsLoggedIn", "LastPasswordResetDate"],
+        UpdateLogin: ["IsLoggedIn"]
     },
     Old_Passwords = {
         InsertColumns: ["UserId", "ResetToken", "HashedPassword"],
@@ -71,24 +83,133 @@ const
  *                                              CsrfToken: "token"
  *                                          }
  */
-AuthRouter.get("/csrf",
-    csrfProtection,
-    (request, response) => {
-        let
-            Payload = {
-                success: true,
-                status: "success",
-                result: {
-                    CsrfToken: request.csrfToken(),
+AuthRouter
+    .get("/csrf",
+        csrfProtection,
+        (request, response) => {
+            let
+                Payload = {
+                    success: true,
+                    status: "success",
+                    result: {
+                        CsrfToken: request.csrfToken(),
+                    },
                 },
-            },
-            statusCode = 200,
-            statusMessage = "Ok";
-        // Logging the response
-        ResponseLogger.log(`📶 [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
-        // Sending the response
-        response.status(statusCode).send(Payload);
-    })
+                statusCode = 200,
+                statusMessage = "Ok";
+            // Logging the response
+            ResponseLogger.log(`📶 [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+            // Sending the response
+            response.status(statusCode).send(Payload);
+        })
+/**
+ * @swagger
+ * /api/auth/login:
+ *  post:
+ *      tags: [Auth]
+ *      summary: Login User with Email and Password -> Returns Details and Access Token
+ *      parameters:
+ *          - in: header
+ *            name: X-CSRF-TOKEN
+ *            schema:
+ *              type: string
+ *            description: CSRF Token
+ *            required: true
+ *      requestBody:
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      properties:
+ *                          email:
+ *                              type: string
+ *                              required: true
+ *                              format: email
+ *                          password:
+ *                              type: string
+ *                              required: true
+ *      responses:
+ *          200:
+ *              description: Success
+ *              content: 
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              success:
+ *                                  type: boolean
+ *                                  example: true  
+ *                              status:
+ *                                  type: string
+ *                                  example: success
+ *                              result:
+ *                                  type: string
+ *                                  example: "Login Successful, Redirecting"
+ *          400:
+ *              description: Bad Request
+ *              content: 
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              success:
+ *                                  type: boolean
+ *                                  example: false  
+ *                              status:
+ *                                  type: string
+ *                                  example: error
+ *                              result:
+ *                                  type: string
+ *                                  example: "Email or Password not found in the request."
+ *          401:
+ *              description: Unauthorized
+ *              content: 
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              success:
+ *                                  type: boolean
+ *                                  example: false  
+ *                              status:
+ *                                  type: string
+ *                                  example: error
+ *                              result:
+ *                                  type: string
+ *                                  example: "Your account is disabled. Contact Admin for more details."
+ *          403:
+ *              description: Forbidden
+ *              content: 
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              success:
+ *                                  type: boolean
+ *                                  example: false  
+ *                              status:
+ *                                  type: string
+ *                                  example: error
+ *                              result:
+ *                                  type: string
+ *                                  example: "Email is not verified."
+ *          500:
+ *              description: Internal Server Error
+ *              content: 
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              success:
+ *                                  type: boolean
+ *                                  example: false  
+ *                              status:
+ *                                  type: string
+ *                                  example: error
+ *                              result:
+ *                                  type: string
+ *                                  example: "Login Request Failed, Please Try Again Later"
+ */
 AuthRouter.post("/login",
     // Checking for CSRF Token
     csrfProtection,
@@ -103,17 +224,11 @@ AuthRouter.post("/login",
     setRequestLimiter(minToMs(LoginRequestLimit.minutes), LoginRequestLimit.requests),
     // Request Handel
     (request, response) => {
-        // Receive Request From CLient With UserName and Password
-        // -> Query Db Check if User is Valid and Update Details -> Is LoggedIn
-        // -> Store User Login Credentials on Session / Server Side and CLient Side
-        // -> Send Response to Client
-        // Handle Login Request
-
-
         let Payload = {
             success: false,
             status: "error",
             result: "Email or Password not found in the request.",
+            data: {}
         },
             statusCode = 400,
             statusMessage = "Bad Request";
@@ -122,6 +237,7 @@ AuthRouter.post("/login",
             Payload.success = false;
             Payload.status = "error";
             Payload.result = "Email or Password not found in the request or might be invalid.";
+            Payload.data = {};
             statusCode = 400;
             statusMessage = "Bad Request";
             // Logging the response
@@ -131,20 +247,313 @@ AuthRouter.post("/login",
         }
         // When All Request Condition Satisfies
         else {
-            // Extracting Request Data
-            // Query Db Check if User is Valid and Update Details -> Is LoggedIn
-            // -> Check if LastPasswordResetDate is Less than x time -> Reset Password -> Send Email
-            // -> Store User Login Credentials on Session / Server Side and CLient Side
-            // -> Send Response to Client
+            // Extracting Email and Password
+            const
+                Email = request.body.email,
+                Password = SHA_512(request.body.email + request.body.password + "IMAGE_SERVER_HASH");
+            // Check Database for User
+            Database
+                .executeQuery(
+                    UserTable
+                        .select(QueryBuilder.selectType.ALL)
+                        .where(`Email = '${Email}' AND PASSWORD = '${Password}'`)
+                        .build(),
+                    (resp_i => {
+                        // Checks Success Result
+                        if (resp_i.status) {
+                            if (resp_i.rows.length != 0) {
+                                // Extracting User Data
+                                const {
+                                    UserId, UserName, FullName,
+                                    Email, IsLoggedIn, UserGroup,
+                                    IsDisabled, LastPasswordResetDate, VerificationStatus, CreatedAt
+                                } = resp_i.rows[0];
+                                // Verification Status Check
+                                if (VerificationStatus == 0) {
+                                    Payload.success = false;
+                                    Payload.status = "error";
+                                    Payload.result = "Email is not verified. Please verify your email.";
+                                    Payload.data = {};
+                                    statusCode = 403;
+                                    statusMessage = "Forbidden";
+                                    // Logging the response
+                                    ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                    // Sending the response
+                                    response.status(statusCode).send(Payload);
+                                }
+                                // Disable Check
+                                else if (IsDisabled) {
+                                    Payload.success = false;
+                                    Payload.status = "error";
+                                    Payload.result = "Your account is disabled. Contact Admin for more details.";
+                                    Payload.data = {};
+                                    statusCode = 401;
+                                    statusMessage = "Unauthorized";
+                                    // Logging the response
+                                    ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                    // Sending the response
+                                    response.status(statusCode).send(Payload);
+                                }
+                                // Last Reset Check
+                                else if (timeExceeded(new Date().getTime(), Date.parse(LastPasswordResetDate), monthToMs(ResetExpiry.renewalInMonths))) {
+                                    // Force Reset, Send An Email Of Reset
+                                    // Generate Token and Store on Old Password DB
+                                    const
+                                        ResetToken = RandomString(25),
+                                        ResetEndPoint = `http://localhost:${DevelopmentEnv ? 8079 : ServerConfig.server.PORT}/reset?token=${ResetToken}_${UserDetails.UserId}&&email=${request.body.email}`,
+                                        EmailConfig = {
+                                            subject: "Reset your password, ImageServer 🔐",
+                                            title: "ImageServer - Reset Password ✉",
+                                            user: UserName,
+                                            email: Email,
+                                            message: `Looks Like You Have not updated your password since ${LastPasswordResetDate.splice(' ')[0]},<br>Please update your password. <br>Follow this link to reset your password ${UserDetails.UserName}.<br><br>
+                                                    <span class="text-center"><a href="${ResetEndPoint}" target="_blank" class="btn btn-success">CLick Me 👆</a></span>
+                                                    <br> OR --> <a href="${ResetEndPoint}" target="_blank" class="link-success">${ResetEndPoint}</a><br>
+                                                    <strong class="text-danger">This Link is Only Valid for ${ResetExpiry.resetExpireInMinute} Minutes.</strong>
+                                                    `,
+                                        }
+                                    // Generate Token Store on Old Password DB INcluding User id -> Send Email to User with Link to reset password 
+                                    Database
+                                        .executeQuery(
+                                            OldPasswordTable
+                                                .insert(Old_Passwords.InsertColumns,
+                                                    [
+                                                        `${UserId}`,
+                                                        `'${ResetToken}'`,
+                                                        `'${Password}'`
+                                                    ])
+                                                .build(),
+                                            (res => {
+                                                if (res.status) {
+                                                    // Success
+                                                    // Send Email to User
+                                                    MailHandel.sendEmail(EmailConfig.subject, EmailConfig.email, EmailConfig.user, EmailConfig.title, EmailConfig.message)
+                                                    // Success Response
+                                                    Payload.success = true;
+                                                    Payload.status = "success";
+                                                    Payload.result = `An Email is Sent to ${EmailConfig.email}, Please Update your password!`;
+                                                    statusCode = 200;
+                                                    statusMessage = "Ok";
+                                                } else {
+                                                    // Error
+                                                    Payload.success = false;
+                                                    Payload.status = "error";
+                                                    Payload.result = "Update Request Failed, Please Try Again Later.";
+                                                    statusCode = 500;
+                                                    statusMessage = "Internal Server Error";
+                                                }
+                                                // Logging the response
+                                                ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                                // Sending the response
+                                                response.status(statusCode).send(Payload);
+                                            })
+                                        )
+                                }
+                                else {
+                                    // Update isLoggedIn to 1
+                                    Database
+                                        .executeQuery(
+                                            UserTable
+                                                .update(User.UpdateLogin, [true])
+                                                .where(`UserId = '${UserId}'`)
+                                                .build(),
+                                            (resUp => {
+                                                if (resUp.status) {
+                                                    // Generate JWT Token
+                                                    let access = JWT
+                                                        .sign({
+                                                            UserId, Email, UserGroup,
+                                                        }, ServerConfig.jwt.secret, { expiresIn: ServerConfig.jwt.expiry }),
+                                                        user = {
+                                                            UserId, UserName, FullName,
+                                                            Email, IsLoggedIn, UserGroup,
+                                                            IsDisabled, LastPasswordResetDate, VerificationStatus, CreatedAt
+                                                        }
+                                                        ;
+                                                    // Create Payload
+                                                    Payload.success = true;
+                                                    Payload.status = "success";
+                                                    Payload.result = "Login Successful, Redirecting....";
+                                                    // Send Token + Selected Payload To Client
+                                                    Payload.data = {
+                                                        user,
+                                                        access
+                                                    }
+                                                    statusCode = 200;
+                                                    statusMessage = "Ok";
+                                                    // Logging the response
+                                                    ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                                    // Sending the response
+                                                    response.status(statusCode).send(Payload);
+                                                } else {
+                                                    Payload.success = false;
+                                                    Payload.status = "error";
+                                                    Payload.result = "Login Request Failed, Please Try Again Later.";
+                                                    Payload.data = {};
+                                                    statusCode = 500;
+                                                    statusMessage = "Internal Server Error";
+                                                    // Logging the response
+                                                    ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                                    // Sending the response
+                                                    response.status(statusCode).send(Payload);
+                                                }
+                                            })
+                                        )
+                                }
+                            } else {
+                                Payload.success = false;
+                                Payload.status = "error";
+                                Payload.result = "User not found, Make sure you have entered correct email and password.";
+                                Payload.data = {};
+                                statusCode = 400;
+                                statusMessage = "Bad Request";
+                                // Logging the response
+                                ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                // Sending the response
+                                response.status(statusCode).send(Payload);
+                            }
+                        } else {
+                            Payload.success = false;
+                            Payload.status = "error";
+                            Payload.result = "Invalid Email or Password.";
+                            Payload.data = {};
+                            statusCode = 400;
+                            statusMessage = "Bad Request";
+                            // Logging the response
+                            ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                            // Sending the response
+                            response.status(statusCode).send(Payload);
+                        }
+                    })
+                )
+
         }
     })
+/**
+ * @swagger
+ * /api/auth/logout:
+ *  post:
+ *      tags: [Auth]
+ *      summary: Logout User -> Requires Access Token
+ *      parameters:
+ *          - in: header
+ *            name: X-CSRF-TOKEN
+ *            schema:
+ *              type: string
+ *            description: CSRF Token
+ *            required: true
+ *      security:
+ *          - bearerAuth: []
+ *      requestBody:
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      properties:
+ *                          UserId:
+ *                              type: integer
+ *                              required: true
+ *                              format: number
+ *      responses:
+ *          200:
+ *              description: Success
+ *              content: 
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              success:
+ *                                  type: boolean
+ *                                  example: true  
+ *                              status:
+ *                                  type: string
+ *                                  example: success
+ *                              result:
+ *                                  type: string
+ *                                  example: "Logout Successful."
+ *          400:
+ *              description: Bad Request
+ *              content: 
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              success:
+ *                                  type: boolean
+ *                                  example: false  
+ *                              status:
+ *                                  type: string
+ *                                  example: error
+ *                              result:
+ *                                  type: string
+ *                                  example: "UserId not found in the request or might be invalid"
+ *          401:
+ *              description: Unauthorized
+ *              content: 
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              success:
+ *                                  type: boolean
+ *                                  example: false  
+ *                              status:
+ *                                  type: string
+ *                                  example: error
+ *                              result:
+ *                                  type: string
+ *                                  example: "Your account is disabled. Contact Admin for more details."
+ */
 AuthRouter
-    .post('/logout', (request, response) => {
-        response.send({
-            status: "success",
-            message: "Welcome to SniperCode API",
-        });
-    })
+    .post('/logout',
+        // User Id Check
+        [check(['UserId']).not().isEmpty()],
+        // Handle Request
+        (request, response) => {
+            let Payload = {
+                success: true,
+                status: "success",
+                result: "Logout Successful.",
+            },
+                statusCode = 200,
+                statusMessage = "Ok";
+            // Error Check from Request
+            if (!validationResult(request).isEmpty()) {
+                Payload.success = false;
+                Payload.status = "error";
+                Payload.result = "UserId not found in the request or might be invalid.";
+                Payload.data = {};
+                statusCode = 400;
+                statusMessage = "Bad Request";
+                // Logging the response
+                ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                // Sending the response
+                response.status(statusCode).send(Payload);
+            } else {
+                if (request.body.UserId != null) {
+                    // Setting Is LoggedIn to False
+                    // Update isLoggedIn to 1
+                    Database
+                        .executeQuery(
+                            UserTable
+                                .update(User.UpdateLogin, [false])
+                                .where(`UserId = '${request.body.UserId}'`)
+                                .build(),
+                            () => { }
+                        )
+                } else {
+                    Payload.success = false;
+                    Payload.status = "error";
+                    Payload.result = "Invalid request, Please check your request.";
+                    statusCode = 400;
+                    statusMessage = "Bad Request";
+                }
+                // Logging the response
+                ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                // Sending the response
+                response.status(statusCode).send(Payload);
+            }
+        })
 /**
  * @swagger
  * /api/auth/register:
@@ -304,7 +713,7 @@ AuthRouter.post("/register",
                             // Error
                             Payload.success = false;
                             Payload.status = "error";
-                            Payload.result = "User Registration Failed, Please Try Again Later.";
+                            Payload.result = "User Registration Failed, Username or Email already exists.";
                             statusCode = 500;
                             statusMessage = "Internal Server Error";
                         }
@@ -711,7 +1120,7 @@ AuthRouter.post("/reset",
                                                         Database
                                                             .executeQuery(
                                                                 UserTable
-                                                                    .update(User.ResetColumns, [`'${newHashedPAssword}'`, false, 'CURRENT_TIMESTAMP'])
+                                                                    .update(User.ResetColumns, [`'${newHashedPAssword}'`, false, `(DATETIME('now', 'localtime')`])
                                                                     .where(`UserId = ${userId}`)
                                                                     .build()
                                                                 ,

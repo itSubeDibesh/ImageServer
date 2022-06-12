@@ -31,6 +31,11 @@ class Utility {
      */
     static Express = require('express')
     /**
+     * @description Importing Json Web Token
+     * @memberof Utility
+     */
+    static JWT = require('jsonwebtoken')
+    /**
     * @description Importing FileLogger
     * @memberof Utility
     */
@@ -99,6 +104,20 @@ class Utility {
         return month * Days * Hours * Minutes * Seconds * MilliSeconds;
     }
     /**
+   * @static Converts Day to MilliSeconds
+   * @memberof Utility 
+   * @param {int} month 
+   * @returns {Number}
+   */
+    static daysToMs = function (days) {
+        const
+            Hours = 24,
+            Minutes = 60,
+            Seconds = 60,
+            MilliSeconds = 1e3;
+        return days * Hours * Minutes * Seconds * MilliSeconds;
+    }
+    /**
      * @static Checks If time Has Expired 
      * @memberof Utility
      * @param {Number} endTime -> Current Mostly
@@ -107,7 +126,6 @@ class Utility {
      * @returns {Boolean}
      */
     static timeExceeded = function (endTime, startTime, timeLimit) {
-        console.log("Times:", endTime, startTime, endTime - startTime, timeLimit)
         return endTime - startTime > timeLimit;
     }
     /**

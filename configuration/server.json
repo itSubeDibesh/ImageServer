@@ -7,14 +7,6 @@
     "server": {
         "PORT": 8080,
         "isHttp": true,
-        "session": {
-            "name": "IMAGE_SERVER.SID",
-            "secret": "sessionSecret@Image _Sever.2022",
-            "resave": true,
-            "saveUninitialized": false,
-            "cookieMaxAge": 864e5,
-            "secureCookie": true
-        },
         "preventions": {
             "sqLInjection": true,
             "enableAccessControl": true,
@@ -85,6 +77,14 @@
             "/api/auth/login",
             "/api/auth/forgot",
             "/api/auth/reset"
+        ]
+    },
+    "jwt": {
+        "secret": "jwtSecret@Image _Sever.2022",
+        "expiry": 864e5,
+        "applyEndPoints": [
+            "/api/auth/logout",
+            "/api/image"
         ]
     }
 }

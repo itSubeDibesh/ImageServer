@@ -159,7 +159,7 @@ import CountDown from '@/components/CountDown.vue';
 import { VueRecaptcha } from 'vue-recaptcha';
 
 // Import Password Analyzer
-import PasswordAnalyzer from "../../../../library/security/lib.password.analyzer"
+import PasswordAnalyzer from "../../../../library/analyzer/lib.password.analyzer"
 const Analyzer = new PasswordAnalyzer();
 
 export default {

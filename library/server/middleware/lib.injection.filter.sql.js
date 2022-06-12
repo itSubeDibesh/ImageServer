@@ -21,44 +21,46 @@ class SQLInjectionMiddleware {
         for (const key in request) {
             if (Object.hasOwnProperty.call(request, key)) {
                 if (request[key] != null) {
-                    // Removing Every Thing That has following characters in query
-                    ["AND", "OR", "NOT", "IN", "LIKE", "BETWEEN",
-                        "GROUP BY", "ORDER BY", "HAVING", "LIMIT",
-                        "OFFSET", "SLEEP", "WAITFOR", "DELAY", "FOR",
-                        "UNION", "BENCHMARK"
-                    ]
-                        .forEach(conditions => {
-                            if (request[key].includes(conditions.toLowerCase()) || request[key].includes(conditions)) {
-                                request[key] = request[key].split(conditions)[0];
-                            }
+                    if (typeof request[key] !== "number") {
+                        // Removing Every Thing That has following characters in query
+                        ["AND", "OR", "NOT", "IN", "LIKE", "BETWEEN",
+                            "GROUP BY", "ORDER BY", "HAVING", "LIMIT",
+                            "OFFSET", "SLEEP", "WAITFOR", "DELAY", "FOR",
+                            "UNION", "BENCHMARK"
+                        ]
+                            .forEach(conditions => {
+                                if (request[key].includes(conditions.toLowerCase()) || request[key].includes(conditions)) {
+                                    request[key] = request[key].split(conditions)[0];
+                                }
+                            })
+
+                        // Replacing -- with white space
+                        request[key] = request[key].replace(/--/g, "");
+
+                        // Replacing ;-- with white space
+                        request[key] = request[key].replace(';--', '');
+
+                        // Replacing - with white space
+                        request[key] = request[key].replace(/-/g, "");
+
+                        // Append \ before every types of quotes like ' or " or `
+                        let ParseQuery = "";
+                        [...request[key]].forEach(char => {
+                            if (
+                                char == '\"' ||
+                                char == '\`' ||
+                                char == '“' ||
+                                char == '”' ||
+                                char == '’'
+                            ) ParseQuery += `\\${char}`;
+                            // Replace  ' Or ‘ with white space
+                            else if (char == "\'" || char == '‘') ParseQuery += "";
+                            else ParseQuery += char;
+
                         })
 
-                    // Replacing -- with white space
-                    request[key] = request[key].replace(/--/g, "");
-
-                    // Replacing ;-- with white space
-                    request[key] = request[key].replace(';--', '');
-
-                    // Replacing - with white space
-                    request[key] = request[key].replace(/-/g, "");
-
-                    // Append \ before every types of quotes like ' or " or `
-                    let ParseQuery = "";
-                    [...request[key]].forEach(char => {
-                        if (
-                            char == '\"' ||
-                            char == '\`' ||
-                            char == '“' ||
-                            char == '”' ||
-                            char == '’'
-                        ) ParseQuery += `\\${char}`;
-                        // Replace  ' Or ‘ with white space
-                        else if (char == "\'" || char == '‘') ParseQuery += "";
-                        else ParseQuery += char;
-
-                    })
-
-                    request[key] = ParseQuery.trim();
+                        request[key] = ParseQuery.trim();
+                    }
                 }
             }
         }

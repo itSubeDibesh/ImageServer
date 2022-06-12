@@ -41,10 +41,6 @@ var
          */
         Cors: require('cors'),
         /**
-         * @description Importing Express-Session
-         */
-        Session: require('express-session'),
-        /**
          * @description Importing Cookie Parser 
          */
         CookieParser: require('cookie-parser'),
@@ -65,15 +61,19 @@ var
         /**  
          * @description Importing SQLInjection Middleware
          */
-        SQLInjection: require('../server/middleware/lib.injection.filter.sql').filter,
+        SQLInjection: require('./middleware/lib.injection.filter.sql').filter,
         /** 
          * @description Importing AccessControl Middleware
          */
-        AccessControl: require('../server/middleware/lib.access.control').control,
+        AccessControl: require('./middleware/lib.access.control').control,
         /**
          * @description Importing ReCaptcha Middleware
          */
         ReCaptcha: require('./middleware/lib.recaptcha.google').captcha,
+        /**
+         * @description Importing Loggedin Middleware
+         */
+        LoggedIn: require('./middleware/lib.auth.loggedin').checkLogin,
     },
     /**
      * @description Importing Configurations
@@ -275,7 +275,7 @@ class Server {
     async #activateHttp() {
         const
             { XSS, Helmet, Cors, Session, Express, CookieParser, History } = Packages,
-            { SQLInjection, AccessControl, ReCaptcha } = MiddleWare;
+            { SQLInjection, AccessControl, ReCaptcha, LoggedIn } = MiddleWare;
         // Check if the Frontend build is completed
         this.server
             // Hiding the server information
@@ -286,10 +286,8 @@ class Server {
             .use(Helmet())
             // Setting UP Cors for Cross Origin Resource Sharing
             .use(Cors({
-                origin: `http://localhost:${this.PORT}`,
+                origin: `http://localhost:${this.PORT}`
             }))
-            // Session Config if needed
-            .use(Session(this.#setSessionConfiguration()))
             // Parse requests of content-type - application/json
             .use(Express.json())
             // Parse requests of content-type - application/x-www-form-urlencoded
@@ -298,6 +296,8 @@ class Server {
             .use(CookieParser())
             // Setting Multer For Image Uploads
             .use(this.imageUploader.any());
+        // Logging Middleware
+        this.server.use(MiddleWare.LoggedIn())
         // Preventing Sql Injection Attacks
         if (this.preventSqlInjection) this.server.use(SQLInjection());
         // Enabling Access Control

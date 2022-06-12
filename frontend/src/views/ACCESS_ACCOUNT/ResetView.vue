@@ -119,7 +119,7 @@ import PreLoader from '@/components/PreLoader.vue';
 import { VueRecaptcha } from 'vue-recaptcha';
 
 // Import Password Analyzer
-import PasswordAnalyzer from "../../../../library/security/lib.password.analyzer"
+import PasswordAnalyzer from "../../../../library/analyzer/lib.password.analyzer"
 const Analyzer = new PasswordAnalyzer();
 
 export default {
