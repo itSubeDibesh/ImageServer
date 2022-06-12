@@ -26,7 +26,7 @@ class LoginMiddleware {
             }, StatusCode = 401,
                 Escape = [];
             // check if requested url is not in array
-            config.jwt.applyEndPoints.forEach(endpoint => {
+            config.jwt.appliedEndPoints.forEach(endpoint => {
                 if (request.url.includes(endpoint)) Escape.push(endpoint)
             })
             if (Escape.length == 0) {

@@ -14,7 +14,6 @@
  *          description: Bearer Token
  *          bearerFormat: JWT
  */
-
 const
     // Importing required modules
     {

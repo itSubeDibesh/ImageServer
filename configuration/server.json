@@ -82,7 +82,7 @@
     "jwt": {
         "secret": "jwtSecret@Image _Sever.2022",
         "expiry": 864e5,
-        "applyEndPoints": [
+        "appliedEndPoints": [
             "/api/auth/logout",
             "/api/image"
         ]
