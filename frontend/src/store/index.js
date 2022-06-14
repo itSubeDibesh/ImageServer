@@ -18,6 +18,7 @@ export default createStore({
     // Login Store
     user: {},
     loggedIn: false,
+    token: null,
   },
   getters: {
     loading(state) {
@@ -32,7 +33,8 @@ export default createStore({
     userLoggedIn(state) {
       return {
         loggedIn: state.loggedIn,
-        user: state.user
+        user: state.user,
+        token: state.token
       }
     },
     timeOut(state) {
@@ -71,6 +73,7 @@ export default createStore({
     isLoggedIn(state, payload) {
       state.loggedIn = payload.loggedIn
       state.user = payload.user
+      state.token = payload.token
     },
     // Timeout Handler Mutations
     setTimeOut(state, payload) {

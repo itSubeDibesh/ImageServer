@@ -25,7 +25,7 @@
                 "minutes": 10
             },
             "login": {
-                "requests": 5,
+                "requests": 10,
                 "minutes": 10
             }
         },

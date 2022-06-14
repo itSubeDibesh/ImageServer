@@ -1,5 +1,5 @@
 <template>
-  <PreLoader v-if="showPreload" :timeout="15e2" :appLoad="true" style="margin:20%;" />
+  <PreLoader v-if="showPreload" :timeout="15e2" :appLoad="true" style="margin:15%;" />
   <div v-else>
     <NavBar :title="title" v-on:changeMode="changeMode" v-on:isLoggedIn="isLoggedIn" />
     <div class="container" :class="{ 'mt-5 pt-5': isOnline, 'mt-3 pt-0': !isOnline }">
@@ -81,31 +81,6 @@ export default {
       this.$store.commit(navigator.onLine ? 'isConnected' : 'isDisconnected');
       window.addEventListener('online', () => this.$store.commit('isConnected'));
       window.addEventListener('offline', () => this.$store.commit('isDisconnected'));
-    },
-    // UserLogin
-    isUserLoggedIn() {
-      // Handle Storage
-      // addEventListener('storage', event => {
-      //   this.hasLoggedIn(event.newValue == 'true');
-      //   if (event.newValue != "true") {
-      //     this.$router.push('/');
-      //   } else {
-      //     this.$router.push('/dashboard');
-      //   }
-      // });
-      // if (localStorage.getItem('isLoggedIn') == 'true') {
-      //   this.$router.push('/dashboard');
-      // } else {
-      //   this.$router.push('/');
-      // }
-    },
-    hasLoggedIn(value) {
-      if (value !== undefined) {
-        // Triggers when the loggedIn event is emitted from login component
-        // console.log(value, "triggered"); -> email, Password and isLoggedIn
-        this.$store.commit(value ? 'isLoggedIn' : 'isLoggedOut')
-        localStorage.setItem('isLoggedIn', value);
-      }
     }
   },
   watch: {
@@ -120,6 +95,27 @@ export default {
       if (to.path == "/429") {
         this.$router.push('/429');
       }
+      // Loggedin Routes
+      // ['/dashboard'].forEach(route => {
+      //   if (to.path == route) {
+      //     if (this.userLoggedIn.loggedIn && this.userLoggedIn.user != undefined) {
+      //       this.$router.push(route);
+      //     } else {
+      //       this.$router.push('/login');
+      //     }
+      //   }
+      // })
+      // Logged out Routes
+      // ["/", "/about", "/contact", "/analyze", "/register", "/login"]
+      //   .forEach(route => {
+      //     if (to.path == route) {
+      //       if (this.userLoggedIn.loggedIn && this.userLoggedIn.user != undefined) {
+      //         this.$router.push(route);
+      //       } else {
+      //         this.$router.push('/dashboard');
+      //       }
+      //     }
+      //   })
     },
   },
   beforeMount() {
@@ -136,8 +132,6 @@ export default {
     this.isNetworkConnected();
     // Check if Night Mode is enabled
     this.isNightModeEnabled();
-    // Check if user is logged in
-    // this.isUserLoggedIn();
   },
   computed: {
     showPreload() {
@@ -149,9 +143,10 @@ export default {
     },
     isOnline() {
       return this.$store.getters.online;
-    }
+    },
+    userLoggedIn() {
+      return this.$store.getters.userLoggedIn;
+    },
   }
 };
 </script>
-
-// Issue on is LoggedIn

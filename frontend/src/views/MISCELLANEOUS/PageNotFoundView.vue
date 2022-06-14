@@ -14,7 +14,12 @@
                             class="img img-fluid" style="max-width:30%;" alt="404 Image">
                     </div>
                     <div class="text-center mb-3">
-                        <router-link to="/" class="btn"
+                        <router-link to="/dashboard" class="btn" v-if="userLoggedIn.loggedIn"
+                            :class="{ 'btn-danger': isDarkMode, 'btn-success': !isDarkMode }">
+                            <strong>Back to Dashboard </strong>
+                            <i class="fas fa-gauge"></i>
+                        </router-link>
+                        <router-link to="/" class="btn" v-else
                             :class="{ 'btn-danger': isDarkMode, 'btn-success': !isDarkMode }">
                             <strong>Back to Home </strong>
                             <i class="fas fa-home-lg"></i>
@@ -42,7 +47,10 @@ export default {
     computed: {
         isDarkMode() {
             return this.$store.getters.appMode;
-        }
+        },
+        userLoggedIn() {
+            return this.$store.getters.userLoggedIn;
+        },
     }
 }
 </script>

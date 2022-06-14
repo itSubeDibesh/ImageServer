@@ -43,14 +43,6 @@ const routes = [
     component: () => import('../views/VISIT_WEBSITE/AnalyzerView.vue')
   },
   {
-    path: '/forget',
-    name: 'forget',
-    meta: {
-      title: 'Facts and Questions'
-    },
-    component: () => import('../views/VISIT_WEBSITE/ForgetPasswordView.vue')
-  },
-  {
     path: '/contact',
     name: 'contact',
     meta: {

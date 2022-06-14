@@ -98,14 +98,14 @@
                     <li class="nav-item dropdown" v-else>
                         <a class="nav-link text-center dropdown-toggle" href="#" id="navbarDropdown" role="button"
                             data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-user"></i> {{ userLoggedIn.user.username }}
+                            <i class="fas fa-user"></i> {{ userLoggedIn.user.UserName }}
                         </a>
                         <ul :class="{ 'dropdown-menu': true, ' dropdown-menu-end': true, 'bg-dark': !nightMode, 'bg-light': nightMode }"
                             aria-labelledby="navbarDropdown">
                             <li>
                                 <a :class="{ 'dropdown-item text-center btn': true, 'text-light': !nightMode, 'text-dark': nightMode }"
                                     href="#" id="userDetails">
-                                    <span><i class="fas fa-envelope"></i>{{ userLoggedIn.user.email }}</span>
+                                    <span><i class="fas fa-envelope"></i>{{ userLoggedIn.user.Email }}</span>
                                 </a>
                             </li>
                             <li>
@@ -128,17 +128,26 @@
             </div>
         </div>
     </nav>
+    <Alert :type="alertType" :showAlert="showAlert" :message="alertMessage" @hideAlert="hideAlert" />
 </template>
 
 <script>
 import $ from 'jquery';
+import Alert from '@/components/Alert.vue';
 
 export default {
     name: "NavBar",
     props: ["title", "subtitle"],
+    components: {
+        Alert
+    },
     data() {
         return {
             darkMode: this.$store.getters.appMode,
+            CSRF: "",
+            alertType: "",
+            showAlert: false,
+            alertMessage: "",
         }
     },
     methods: {
@@ -152,12 +161,35 @@ export default {
             }
         },
         logOut() {
-            this.$store.commit('isLoggedOut', {
-                loggedIn: false,
-                user: {
+            // Send Logout Request
+            const Payload = {
+                UserId: this.userLoggedIn.user.UserId
+            }
+            // Make a request to logout the user api
+            fetch('/api/auth/logout', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + this.userLoggedIn.token,
+                    'X-CSRF-TOKEN': this.CSRF
+                },
+                body: JSON.stringify(Payload)
+            }).then(response => {
+                if (response.status === 200) {
+                    this.$store.commit('isLoggedIn', {
+                        loggedIn: false,
+                        user: {},
+                        token: {}
+                    });
+                    this.$router.push('/login');
                 }
-            })
-            this.$router.push('/');
+            }).catch(error => {
+                this.alertType = json.status == "error" ? "danger" : "success";
+                this.alertMessage = `Something went wrong. Please try again.`;
+                this.showAlert = true;
+                console.log(error);
+            });
         },
         isActive(pageTitle) {
             return pageTitle === this.title;
@@ -181,6 +213,17 @@ export default {
             }
         });
         $('.navbar-collapse').click(function (event) { event.stopPropagation(); });
+        // Fetch CSRF Token
+        fetch('/api/auth/csrf', {
+            method: 'GET',
+            credentials: 'same-origin'
+        }).then(response => {
+            if (response.status === 2e2) {
+                return response.json();
+            }
+        }).then(json => {
+            this.CSRF = json.result.CsrfToken;
+        });
     },
     computed: {
         nightMode() {
