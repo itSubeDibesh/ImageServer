@@ -10,6 +10,7 @@
       </div>
     </div>
   </div>
+  <Footer v-if="userLoggedIn.loggedIn" :fixedBottom="true" />
 </template>
 <script>
 // @ is an alias to /src
@@ -17,6 +18,8 @@ import NetworkStatus from '@/components/NetworkStatus.vue'
 import NavBar from '@/components/NavBar.vue'
 import Alert from '@/components/Alert.vue';
 import PreLoader from '@/components/PreLoader.vue'
+import Footer from '@/components/Footer.vue'
+
 import ls from 'localstorage-slim';
 import encUTF8 from 'crypto-js/enc-utf8';
 import AES from 'crypto-js/aes';
@@ -28,7 +31,8 @@ export default {
     NavBar,
     PreLoader,
     NetworkStatus,
-    Alert
+    Alert,
+    Footer
   },
   data() {
     return {
