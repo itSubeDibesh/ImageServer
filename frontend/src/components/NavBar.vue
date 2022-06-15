@@ -134,6 +134,9 @@
 <script>
 import $ from 'jquery';
 import Alert from '@/components/Alert.vue';
+import ls from 'localstorage-slim';
+import encUTF8 from 'crypto-js/enc-utf8';
+import AES from 'crypto-js/aes';
 
 export default {
     name: "NavBar",
@@ -143,6 +146,7 @@ export default {
     },
     data() {
         return {
+            enc: this.$store.getters.getEnc,
             darkMode: this.$store.getters.appMode,
             CSRF: "",
             alertType: "",
@@ -161,9 +165,24 @@ export default {
             }
         },
         logOut() {
+            // Decrypting Stored Information
+            const Stored = ls.get('userState', {
+                secret: this.enc,
+                decrypt: true,
+                decrypter: (data, secret) => {
+                    try {
+                        return JSON.parse(AES.decrypt(data, secret).toString(encUTF8));
+                    } catch (e) {
+                        // incorrect/missing secret, return the encrypted data instead
+                        return data;
+                    }
+                }
+            })
+            // Removing UseState from LocalStorage
+            ls.remove('userState');
             // Send Logout Request
             const Payload = {
-                UserId: this.userLoggedIn.user.UserId
+                UserId: this.userLoggedIn.user.UserId || Stored.user.UserId,
             }
             // Make a request to logout the user api
             fetch('/api/auth/logout', {
@@ -171,7 +190,7 @@ export default {
                 credentials: 'same-origin',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + this.userLoggedIn.token,
+                    'Authorization': 'Bearer ' + this.userLoggedIn.token || Stored.token,
                     'X-CSRF-TOKEN': this.CSRF
                 },
                 body: JSON.stringify(Payload)

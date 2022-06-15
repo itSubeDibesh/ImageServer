@@ -17,6 +17,9 @@ import NetworkStatus from '@/components/NetworkStatus.vue'
 import NavBar from '@/components/NavBar.vue'
 import Alert from '@/components/Alert.vue';
 import PreLoader from '@/components/PreLoader.vue'
+import ls from 'localstorage-slim';
+import encUTF8 from 'crypto-js/enc-utf8';
+import AES from 'crypto-js/aes';
 
 // Exporting the data required by other components
 
@@ -29,10 +32,14 @@ export default {
   },
   data() {
     return {
+      enc: this.$store.getters.getEnc,
       title: "Home",
       alertType: '',
       alertMessage: '',
       showAlert: false,
+      globalRoutes: ['/reset'],
+      preLoginRoutes: ['/login', '/register', '/', '/about', '/analyze', '/forget', '/verify'],
+      postLoginRoutes: ['/dashboard', '/accounts', '/images'],
     };
   },
   methods: {
@@ -95,30 +102,44 @@ export default {
       if (to.path == "/429") {
         this.$router.push('/429');
       }
-      // Loggedin Routes
-      // ['/dashboard'].forEach(route => {
-      //   if (to.path == route) {
-      //     if (this.userLoggedIn.loggedIn && this.userLoggedIn.user != undefined) {
-      //       this.$router.push(route);
-      //     } else {
-      //       this.$router.push('/login');
-      //     }
-      //   }
-      // })
-      // Logged out Routes
-      // ["/", "/about", "/contact", "/analyze", "/register", "/login"]
-      //   .forEach(route => {
-      //     if (to.path == route) {
-      //       if (this.userLoggedIn.loggedIn && this.userLoggedIn.user != undefined) {
-      //         this.$router.push(route);
-      //       } else {
-      //         this.$router.push('/dashboard');
-      //       }
-      //     }
-      //   })
-    },
+      // Global routs are accessible from everywhere
+      // Pre Loggedin Routs are not accessible from logged in user
+      if (this.preLoginRoutes.includes(to.path)) {
+        // User Logged In  -> Don't AllowPreLoggedin Access 
+        if (this.userLoggedIn.loggedIn && this.userLoggedIn.token != null) {
+          this.$router.push('/dashboard');
+        }
+      }
+      // Post logged in routes are not accessible from pre logged in user
+      if (this.postLoginRoutes.includes(to.path)) {
+        // User Not Logged In  -> Don't Allow Post Loggedin Access 
+        if (!this.userLoggedIn.loggedIn || this.userLoggedIn.token == null) {
+          this.$router.push('/login');
+        }
+      }
+    }
   },
   beforeMount() {
+    // Decrypting Stored Information
+    const Stored = ls.get('userState', {
+      secret: this.enc,
+      decrypt: true,
+      decrypter: (data, secret) => {
+        try {
+          return JSON.parse(AES.decrypt(data, secret).toString(encUTF8));
+        } catch (e) {
+          // incorrect/missing secret, return the encrypted data instead
+          return data;
+        }
+      }
+    });
+    if (Stored != null && Stored.token != null) {
+      this.$store.commit('isLoggedIn', {
+        loggedIn: Stored.loggedIn,
+        token: Stored.token,
+        user: Stored.user
+      })
+    }
     this.$store.subscribe((mutation) => {
       if (mutation.type == "setAlert") {
         this.showAlert = mutation.payload.showAlert;

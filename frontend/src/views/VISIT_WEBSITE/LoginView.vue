@@ -95,6 +95,8 @@ import PreLoader from '@/components/PreLoader.vue'
 import Alert from '@/components/Alert.vue';
 import CountDown from '@/components/CountDown.vue';
 import { VueRecaptcha } from 'vue-recaptcha';
+import ls from 'localstorage-slim';
+import AES from 'crypto-js/aes';
 
 export default {
     name: 'Login',
@@ -107,6 +109,7 @@ export default {
     data() {
         return {
             siteKey: this.$store.getters.getSiteKey,
+            enc: this.$store.getters.getEnc,
             images: {
                 login: {
                     dark: require('@/assets/login-rafiki-dark.svg'),
@@ -235,12 +238,20 @@ export default {
                                 this.alertType = json.status == "error" ? "danger" : "success";
                                 this.alertMessage = json.result;
                                 this.showAlert = true;
-                                console.log(json);
                                 // Set Details in Vue Store and redirect after 3 seconds
                                 if (json.status) {
                                     // Set Details On Store
                                     // Redirect after 3 seconds
                                     setTimeout(() => {
+                                        ls.set('userState', {
+                                            loggedIn: true,
+                                            user: json.data.user,
+                                            token: json.data.access
+                                        }, {
+                                            secret: this.enc,
+                                            encrypt: true,
+                                            encrypter: (data, secret) => AES.encrypt(JSON.stringify(data), secret).toString()
+                                        })
                                         this.$store.commit("isLoggedIn", {
                                             loggedIn: true,
                                             user: json.data.user,

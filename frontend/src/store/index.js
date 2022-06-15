@@ -15,6 +15,8 @@ export default createStore({
     internetConnected: false,
     // Captcha
     siteKey: "6Ldgc0cgAAAAAHjqNfj5q4qWUruiHOnlF_3iF37k",
+    // Encruption
+    enc: `FrontEND_IMAGE$erV^r20o_a`,
     // Login Store
     user: {},
     loggedIn: false,
@@ -42,6 +44,9 @@ export default createStore({
     },
     getSiteKey(state) {
       return state.siteKey
+    },
+    getEnc(state) {
+      return state.enc
     },
     getAlert(state) {
       return state.alert
