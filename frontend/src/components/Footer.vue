@@ -24,9 +24,20 @@
                             aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <a href="https://storyset.com/mobile"><img
+                        <a href="https://storyset.com/mobile" target="_blank" data-bs-toggle="tooltip"
+                            data-bs-placement="top" title="Storyset"><img
                                 :src="isDarkMode ? images.storySet.light : images.storySet.dark" class="img img-fluid"
                                 style="max-width:50%" alt="StorySet"></a>
+                        <a href="https://getbootstrap.com/" target="_blank" data-bs-toggle="tooltip"
+                            data-bs-placement="top" title="Bootstrap"><img :src="images.bootstrap" class="img img-fluid"
+                                style="max-width:30%" alt="Bootstrap"></a>
+                        <a href="https://fontawesome.com/" target="_blank" data-bs-toggle="tooltip"
+                            data-bs-placement="top" title="Fontawesome">
+                            <i class="fa-solid fa-font-awesome fa-3x"></i>
+                        </a>
+                        <a href="https://vuejs.org" target="_blank" data-bs-toggle="tooltip" data-bs-placement="top"
+                            title="VueJs"><img :src="images.vue" class="img img-fluid" style="max-width:30%"
+                                alt="Bootstrap"></a>
                     </div>
                 </div>
             </div>
@@ -43,7 +54,9 @@ export default {
                 storySet: {
                     light: require('@/assets/storyset-inverted.png'),
                     dark: require('@/assets/storyset-inverted.jpg'),
-                }
+                },
+                bootstrap: require('@/assets/bootstrap.svg'),
+                vue: require('@/assets/logo.png'),
             }
         }
     },
