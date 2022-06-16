@@ -155,7 +155,7 @@ export default {
                             if (json.success) {
                                 // On Success Redirect To Login Page
                                 setTimeout(() => {
-                                    this.alertType = json.status = "info";
+                                    this.alertType = "info";
                                     this.alertMessage = "Redirecting to login page...";
                                     this.showAlert = true;
                                     setTimeout(() => {

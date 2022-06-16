@@ -61,6 +61,14 @@ const routes = [
     component: () => import('../views/ACCESS_ACCOUNT/DashboardView.vue')
   },
   {
+    path: '/settings',
+    name: 'settings',
+    meta: {
+      title: 'Settings'
+    },
+    component: () => import('../views/ACCESS_ACCOUNT/SettingsView.vue')
+  },
+  {
     path: '/verify',
     name: 'VerifyAccount',
     meta: {
@@ -101,6 +109,26 @@ const routes = [
       title: 'Too Many Requests'
     },
     component: () => import('../views/MISCELLANEOUS/TooManyRequestsView.vue')
+  },
+  //#endregion
+  //#region HANDEL_IMAGES
+  {
+    path: '/images',
+    name: 'images',
+    meta: {
+      title: 'Images'
+    },
+    component: () => import('../views/HANDEL_IMAGE/ImageView.vue')
+  },
+  //#endregion
+  //#region HANDEL_USERS
+  {
+    path: '/users',
+    name: 'users',
+    meta: {
+      title: 'Users'
+    },
+    component: () => import('../views/HANDEL_USER/UserView.vue')
   }
   //#endregion
 ]

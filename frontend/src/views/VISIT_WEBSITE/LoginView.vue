@@ -257,7 +257,10 @@ export default {
                                             user: json.data.user,
                                             token: json.data.access
                                         })
-                                        this.$router.push('/dashboard');
+                                        if (json.data.user.UserGroup == 'ADMINISTRATOR')
+                                            this.$router.push('/dashboard');
+                                        else
+                                            this.$router.push('/images');
                                     }, 3e3);
                                 }
                             }, 1e3);

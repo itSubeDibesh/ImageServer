@@ -17,10 +17,16 @@
                         <h5 class="text-primary mb-3"><strong>Please slow down, <br /> Some links might take time to
                                 work
                                 again.</strong></h5>
-                        <router-link to="/dashboard" class="btn" v-if="userLoggedIn.loggedIn"
+                        <router-link to="/dashboard" class="btn"
+                            v-if="userLoggedIn.loggedIn && userLoggedIn.user.UserGroup == 'ADMINISTRATOR'"
                             :class="{ 'btn-danger': isDarkMode, 'btn-success': !isDarkMode }">
                             <strong>Back to Dashboard </strong>
                             <i class="fas fa-gauge"></i>
+                        </router-link>
+                        <router-link to="/images" class="btn" v-else-if="userLoggedIn.loggedIn"
+                            :class="{ 'btn-danger': isDarkMode, 'btn-success': !isDarkMode }">
+                            <strong>Back to Images </strong>
+                            <i class="fas fa-images"></i>
                         </router-link>
                         <router-link to="/" class="btn" v-else
                             :class="{ 'btn-danger': isDarkMode, 'btn-success': !isDarkMode }">

@@ -7,7 +7,13 @@
                 <b><span :class="{ 'text-success': !nightMode, 'text-light': nightMode }">image</span>
                     <span :class="{ 'text-dark': !nightMode, 'text-danger': nightMode }">Server</span></b>
             </router-link>
-            <router-link class="navbar-brand" to="/dashboard" v-else>
+            <router-link class="navbar-brand" to="/dashboard"
+                v-if="userLoggedIn.loggedIn && userLoggedIn.user.UserGroup == 'ADMINISTRATOR'">
+                <img alt="Image Server Logo" class="bg-transparent p-2" src="/img/icons/favicon-32x32.png" />
+                <b><span :class="{ 'text-success': !nightMode, 'text-light': nightMode }">image</span>
+                    <span :class="{ 'text-dark': !nightMode, 'text-danger': nightMode }">Server</span></b>
+            </router-link>
+            <router-link class="navbar-brand" to="/images" v-else>
                 <img alt="Image Server Logo" class="bg-transparent p-2" src="/img/icons/favicon-32x32.png" />
                 <b><span :class="{ 'text-success': !nightMode, 'text-light': nightMode }">image</span>
                     <span :class="{ 'text-dark': !nightMode, 'text-danger': nightMode }">Server</span></b>
@@ -18,7 +24,7 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item" v-if="userLoggedIn.loggedIn">
+                    <li class="nav-item" v-if="userLoggedIn.loggedIn && userLoggedIn.user.UserGroup == 'ADMINISTRATOR'">
                         <router-link class="nav-link text-center"
                             :class="{ active: isActive(`Dashboard`), 'bg-primary text-light': isActive(`Dashboard`) }"
                             aria-current="page" to="/dashboard">
@@ -39,18 +45,11 @@
                             <i class="fas fa-image"></i> Images
                         </router-link>
                     </li>
-                    <li class="nav-item" v-if="userLoggedIn.loggedIn">
+                    <li class="nav-item" v-if="userLoggedIn.loggedIn && userLoggedIn.user.UserGroup == 'ADMINISTRATOR'">
                         <router-link class="nav-link text-center"
-                            :class="{ active: isActive(`Access`), 'bg-primary text-light': isActive(`Access`) }"
-                            aria-current="page" to="/access">
-                            <i class="fas fa-universal-access"></i> Access
-                        </router-link>
-                    </li>
-                    <li class="nav-item" v-if="userLoggedIn.loggedIn">
-                        <router-link class="nav-link text-center"
-                            :class="{ active: isActive(`More`), 'bg-primary text-light': isActive(`More`) }"
-                            aria-current="page" to="/more">
-                            <i class="fas fa-info-circle"></i> More
+                            :class="{ active: isActive(`Users`), 'bg-primary text-light': isActive(`Users`) }"
+                            aria-current="page" to="/users">
+                            <i class="fas fa-users-between-lines"></i> Users
                         </router-link>
                     </li>
                     <li class="nav-item" v-if="!userLoggedIn.loggedIn">
@@ -78,8 +77,8 @@
                 <ul class="navbar-nav">
                     <li class="nav-item">
                         <div class="form-switch form-control-lg text-center">
-                            <input class="form-check-input" type="checkbox" id="DarkMode" :checked="nightMode"
-                                v-on:click="changeMode">
+                            <input class="form-check-input" type="checkbox" style="cursor:pointer" id="DarkMode"
+                                :checked="nightMode" v-on:click="changeMode">
                             <i :class="{ 'text-dark fas fa-moon': !nightMode, 'text-light fas fa-sun': nightMode }"></i>
                         </div>
                     </li>
@@ -100,25 +99,18 @@
                             data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-user"></i> {{ userLoggedIn.user.UserName }}
                         </a>
-                        <ul :class="{ 'dropdown-menu': true, ' dropdown-menu-end': true, 'bg-dark': !nightMode, 'bg-light': nightMode }"
+                        <ul class="dropdown-menu dropdown-menu-end"
+                            :class="{ 'bg-dark border-light': nightMode, 'bg-light': !nightMode }"
                             aria-labelledby="navbarDropdown">
-                            <li>
-                                <a :class="{ 'dropdown-item text-center btn': true, 'text-light': !nightMode, 'text-dark': nightMode }"
-                                    href="#" id="userDetails">
-                                    <span><i class="fas fa-envelope"></i>{{ userLoggedIn.user.Email }}</span>
-                                </a>
-                            </li>
-                            <li>
-                                <hr
-                                    :class="{ 'dropdown-divider': true, 'text-light': !nightMode, 'text-dark': nightMode }" />
+                            <li class="text-center">
+                                <router-link to="/settings" class="dropdown-item"
+                                    :class="{ 'text-light': nightMode, 'text-dark': !nightMode }">
+                                    <i class="fas fa-cogs"></i>
+                                    Settings
+                                </router-link>
                             </li>
                             <li class="text-center">
-                                <a :class="{ 'dropdown-item': true, 'text-light': !nightMode, 'text-dark': nightMode }"
-                                    href="#"><i class="fas fa-cogs"></i>
-                                    Settings</a>
-                            </li>
-                            <li class="text-center">
-                                <a :class="{ 'dropdown-item': true, 'text-light': !nightMode, 'text-dark': nightMode }"
+                                <a class="dropdown-item" :class="{ 'text-light': nightMode, 'text-dark': !nightMode }"
                                     href="#" v-on:click="logOut"><i class="fas fa-user-lock"></i>
                                     Logout</a>
                             </li>
