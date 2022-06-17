@@ -36,6 +36,7 @@ export default {
   },
   data() {
     return {
+      CSRF: "",
       enc: this.$store.getters.getEnc,
       title: "Home",
       alertType: '',
@@ -107,6 +108,44 @@ export default {
       if (to.path == "/429") {
         this.$router.push('/429');
       }
+
+      // Check LoggedIn and Session expired
+      if (this.userLoggedIn.loggedIn) {
+        // Send Login Check Request
+        const Payload = {
+          UserId: this.userLoggedIn.user.UserId
+        }
+        fetch('/api/auth/login_check', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + this.userLoggedIn.token,
+            'X-CSRF-TOKEN': this.CSRF
+          },
+          body: JSON.stringify(Payload)
+        })
+          .then(response => response.json())
+          .then(response => {
+            if (!response.success) {
+              ls.remove('userState');
+              // Logout user 
+              this.$store.commit('isLoggedIn', {
+                loggedIn: false,
+                user: {},
+                token: {}
+              });
+
+              this.$store.commit('setAlert', {
+                type: 'danger',
+                message: response.result,
+                showAlert: true
+              });
+              this.$router.push('/login');
+            }
+          });
+      }
+
       // Global routs are accessible from everywhere
       // Pre Loggedin Routs are not accessible from logged in user
       if (this.preLoginRoutes.includes(to.path)) {
@@ -131,6 +170,18 @@ export default {
     }
   },
   beforeMount() {
+    // CSRF TOKEN
+    fetch('/api/auth/csrf', {
+      method: 'GET',
+      credentials: 'same-origin'
+    }).then(response => {
+      if (response.status === 2e2) {
+        return response.json();
+      }
+    }).then(json => {
+      this.CSRF = json.result.CsrfToken;
+    });
+
     // Decrypting Stored Information
     const Stored = ls.get('userState', {
       secret: this.enc,

@@ -42,7 +42,7 @@ class LoginMiddleware {
                     // Extracting JWT from Header
                     const token = request.headers.authorization.split(" ")[1];
                     // Check IF Token Has Expired
-                    if (JWT.verify(token, config.jwt.secret).exp < Date.now() / 1000) {
+                    if (Date.now() >= JWT.verify(token, config.jwt.secret).exp * 1e3) {
                         Payload.result = "Token Expired, Please Login Again";
                         response.status(StatusCode).send(Payload);
                     }

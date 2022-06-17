@@ -14,6 +14,7 @@
  *          description: Bearer Token
  *          bearerFormat: JWT
  */
+// Note: Expiration token is set based on minutes and seconds-> eg to set 1hr just set 3600 in expiry config
 const
     // Importing required modules
     {
@@ -22,7 +23,7 @@ const
         setRequestLimiter, DevelopmentEnv, MailHandel,
         ServerConfig, RandomString, getDatabase,
         timeExceeded, monthToMs, minToMs,
-        QueryBuilder, JWT
+        QueryBuilder, JWT, msToS
 
     } = require("../../../library/server/lib.utility.express"),
     // Extracting Packages
@@ -32,7 +33,6 @@ const
     LoginRequestLimit = ServerConfig.server.limit.login,
     // Extracting Expires
     ResetExpiry = ServerConfig.server.expiry.password,
-    LoginExpiry = ServerConfig.server.expiry.login,
     // Extracting Router from util
     AuthRouter = Router(),
     // Extracting ExpressValidator from util
@@ -359,10 +359,12 @@ AuthRouter.post("/login",
                                             (resUp => {
                                                 if (resUp.status) {
                                                     // Generate JWT Token
+                                                    const
+                                                        expiresIn = ServerConfig.jwt.expiry;
                                                     let access = JWT
                                                         .sign({
                                                             UserId, Email, UserGroup,
-                                                        }, ServerConfig.jwt.secret, { expiresIn: ServerConfig.jwt.expiry }),
+                                                        }, ServerConfig.jwt.secret, { expiresIn }),
                                                         user = {
                                                             UserId, UserName, FullName,
                                                             Email, IsLoggedIn, UserGroup,
@@ -1403,6 +1405,138 @@ AuthRouter.post("/verification",
                         }
                     })
                 )
+        }
+    })
+/**
+* @swagger
+* /api/auth/login_check:
+*  post:
+*      tags: [Auth]
+*      summary: Check user Login -> Requires Access Token
+*      parameters:
+*          - in: header
+*            name: X-CSRF-TOKEN
+*            schema:
+*              type: string
+*            description: CSRF Token
+*            required: true
+*      security:
+*          - bearerAuth: []
+*      requestBody:
+*          content:
+*              application/json:
+*                  schema:
+*                      type: object
+*                      properties:
+*                          UserId:
+*                              type: integer
+*                              required: true
+*                              format: number
+*      responses:
+*          200:
+*              description: Success
+*              content: 
+*                  application/json:
+*                      schema:
+*                          type: object
+*                          properties:
+*                              success:
+*                                  type: boolean
+*                                  example: true  
+*                              status:
+*                                  type: string
+*                                  example: success
+*                              result:
+*                                  type: string
+*                                  example: "Logout Successful."
+*          400:
+*              description: Bad Request
+*              content: 
+*                  application/json:
+*                      schema:
+*                          type: object
+*                          properties:
+*                              success:
+*                                  type: boolean
+*                                  example: false  
+*                              status:
+*                                  type: string
+*                                  example: error
+*                              result:
+*                                  type: string
+*                                  example: "UserId not found in the request or might be invalid"
+*          401:
+*              description: Unauthorized
+*              content: 
+*                  application/json:
+*                      schema:
+*                          type: object
+*                          properties:
+*                              success:
+*                                  type: boolean
+*                                  example: false  
+*                              status:
+*                                  type: string
+*                                  example: error
+*                              result:
+*                                  type: string
+*                                  example: "Your account is disabled. Contact Admin for more details."
+*/
+AuthRouter.post("/login_check",
+    // Checking for CSRF Token
+    csrfProtection,
+    // User Id Check
+    [check(['UserId']).not().isEmpty()],
+    (request, response) => {
+        let Payload = {
+            status: "error",
+            success: false,
+            result: "Unauthorized Access, Please Login First"
+        }, StatusCode = 401,
+            statusMessage = "Unauthorized";
+        if (!validationResult(request).isEmpty()) {
+            Payload.success = false;
+            Payload.status = "error";
+            Payload.result = "UserId not found in the request or might be invalid.";
+            Payload.data = {};
+            StatusCode = 400;
+            statusMessage = "Bad Request";
+            // Logging the response
+            ResponseLogger.log(`📶  [${StatusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+            // Sending the response
+            response.status(StatusCode).send(Payload);
+        }
+        else {
+            // If other url check header containing JWT
+            if (request.headers.authorization) {
+                // Extracting JWT from Header
+                const token = request.headers.authorization.split(" ")[1];
+                // Check IF Token Has Expired
+                if (Date.now() >= JWT.verify(token, ServerConfig.jwt.secret).exp * 1e3) {
+                    Payload.status = "error";
+                    Payload.success = false;
+                    Payload.result = "Token Expired, Please Login Again";
+                    StatusCode = 401;
+                    statusMessage = "Unauthorized";
+                }
+                else {
+                    // Verifying JWT
+                    JWT.verify(token, ServerConfig.jwt.secret, (err, decoded) => {
+                        // On Identity Check is Successful
+                        if (decoded.UserId == request.body.UserId) {
+                            Payload.success = true;
+                            Payload.status = "success";
+                            Payload.result = "User Already Logged In! Redirecting to Dashboard.";
+                            StatusCode = 200;
+                            statusMessage = "Ok";
+                        }
+                    });
+                }
+                // Logging the response
+                ResponseLogger.log(`📶  [${StatusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                // Sending the response
+                response.status(StatusCode).send(Payload);
+            }
         }
     })
 // Exporting AuthRouter

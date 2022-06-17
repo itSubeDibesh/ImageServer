@@ -8,7 +8,7 @@
                     <span :class="{ 'text-dark': !nightMode, 'text-danger': nightMode }">Server</span></b>
             </router-link>
             <router-link class="navbar-brand" to="/dashboard"
-                v-if="userLoggedIn.loggedIn && userLoggedIn.user.UserGroup == 'ADMINISTRATOR'">
+                v-else-if="userLoggedIn.loggedIn && userLoggedIn.user.UserGroup == 'ADMINISTRATOR'">
                 <img alt="Image Server Logo" class="bg-transparent p-2" src="/img/icons/favicon-32x32.png" />
                 <b><span :class="{ 'text-success': !nightMode, 'text-light': nightMode }">image</span>
                     <span :class="{ 'text-dark': !nightMode, 'text-danger': nightMode }">Server</span></b>
@@ -174,7 +174,7 @@ export default {
             ls.remove('userState');
             // Send Logout Request
             const Payload = {
-                UserId: this.userLoggedIn.user.UserId || Stored.user.UserId,
+                UserId: this.userLoggedIn.user.UserId,
             }
             // Make a request to logout the user api
             fetch('/api/auth/logout', {
@@ -182,7 +182,7 @@ export default {
                 credentials: 'same-origin',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + this.userLoggedIn.token || Stored.token,
+                    'Authorization': 'Bearer ' + this.userLoggedIn.token,
                     'X-CSRF-TOKEN': this.CSRF
                 },
                 body: JSON.stringify(Payload)

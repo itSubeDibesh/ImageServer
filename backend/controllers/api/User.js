@@ -13,6 +13,11 @@ const
     UserRouter = Router();
 
 UserRouter
+    .post('/first_name', (request, response) => {
+        // Retrieve first name from request body
+    })
+
+UserRouter
     .post("/delete", (request, response) => {
         // Send a reset request to delete user and its files
         response.send({
