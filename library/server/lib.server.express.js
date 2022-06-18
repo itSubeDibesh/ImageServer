@@ -74,6 +74,10 @@ var
          * @description Importing Loggedin Middleware
          */
         LoggedIn: require('./middleware/lib.auth.loggedin').checkLogin,
+        /**
+         * @description Importing Logout Hijack Middleware
+         */
+        LogoutHijack: require('./middleware/lib.session.expired').checkExpiry
     },
     /**
      * @description Importing Configurations
@@ -174,6 +178,7 @@ class Server {
         this.preventSqlInjection = Config.server.preventions.sqLInjection;
         this.enableAccessControl = Config.server.preventions.enableAccessControl;
         this.enableReCaptcha = Config.server.preventions.enableReCaptcha;
+        this.preventLogoutSessionHijack = Config.server.preventions.logoutSessionHijack;
         this.setRequestLimit = false;
         if (Config.server.preventions.limitRequest.state) {
             const { request, periodInMs } = Config.server.preventions.limitRequest.limit
@@ -275,7 +280,7 @@ class Server {
     async #activateHttp() {
         const
             { XSS, Helmet, Cors, Session, Express, CookieParser, History } = Packages,
-            { SQLInjection, AccessControl, ReCaptcha, LoggedIn } = MiddleWare;
+            { SQLInjection, AccessControl, ReCaptcha, LoggedIn, LogoutHijack } = MiddleWare;
         // Check if the Frontend build is completed
         this.server
             // Hiding the server information
@@ -296,8 +301,11 @@ class Server {
             .use(CookieParser())
             // Setting Multer For Image Uploads
             .use(this.imageUploader.any());
+
+        // Preventing Logout Session Hijacking
+        if (this.preventLogoutSessionHijack) this.server.use(LogoutHijack());
         // Logging Middleware
-        this.server.use(MiddleWare.LoggedIn())
+        this.server.use(LoggedIn())
         // Preventing Sql Injection Attacks
         if (this.preventSqlInjection) this.server.use(SQLInjection());
         // Enabling Access Control

@@ -11,6 +11,7 @@
             "sqLInjection": true,
             "enableAccessControl": true,
             "enableReCaptcha": true,
+            "logoutSessionHijack": true,
             "limitRequest": {
                 "state": false,
                 "limit": {
@@ -84,7 +85,8 @@
         "expiry": "2h",
         "appliedEndPoints": [
             "/api/auth/logout",
-            "/api/image"
+            "/api/image",
+            "/api/user"
         ]
     }
 }
