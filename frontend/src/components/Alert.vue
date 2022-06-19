@@ -48,23 +48,53 @@ export default {
             }
         },
     },
+    mounted() {
+        switch (this.type) {
+            case "warning":
+                this.itemClass = "alert-warning";
+                this.warning = true;
+                [this.success, this.danger, this.info] = [false, false, false];
+                break;
+            case "success":
+                this.itemClass = "alert-success";
+                this.success = true;
+                [this.warning, this.danger, this.info] = [false, false, false];
+                break;
+            case "danger":
+                this.itemClass = "alert-danger";
+                this.danger = true;
+                [this.warning, this.success, this.info] = [false, false, false];
+                break;
+            case "info":
+                this.itemClass = "alert-primary";
+                this.info = true;
+                [this.warning, this.success, this.danger] = [false, false, false];
+                break;
+        }
+        this.alert = this.showAlert;
+        this.msg = this.message;
+    },
     updated() {
         switch (this.type) {
             case "warning":
                 this.itemClass = "alert-warning";
                 this.warning = true;
+                [this.success, this.danger, this.info] = [false, false, false];
                 break;
             case "success":
                 this.itemClass = "alert-success";
                 this.success = true;
+                [this.warning, this.danger, this.info] = [false, false, false];
                 break;
             case "danger":
                 this.itemClass = "alert-danger";
                 this.danger = true;
+                [this.warning, this.success, this.info] = [false, false, false];
                 break;
             case "info":
                 this.itemClass = "alert-primary";
                 this.info = true;
+                [this.warning, this.success, this.danger] = [false, false, false];
                 break;
         }
         this.alert = this.showAlert;
@@ -76,7 +106,8 @@ export default {
         },
         getAlert() {
             const alert = this.$store.getters.getAlert;
-            switch (this.type) {
+            console.log(alert);
+            switch (alert.type) {
                 case "warning":
                     this.itemClass = "alert-warning";
                     this.warning = true;
@@ -94,8 +125,8 @@ export default {
                     this.info = true;
                     break;
             }
-            this.alert = this.showAlert;
-            this.msg = this.message;
+            this.alert = alert.showAlert;
+            this.msg = alert.message
         }
     }
 }

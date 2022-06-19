@@ -170,6 +170,11 @@ export default {
                     }
                 }
             })
+            this.$store.commit("isLoggedIn", {
+                loggedIn: Stored.loggedIn,
+                user: Stored.user,
+                token: Stored.access
+            })
             // Removing UseState from LocalStorage
             ls.remove('userState');
             // Send Logout Request

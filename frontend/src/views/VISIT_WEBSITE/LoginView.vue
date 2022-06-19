@@ -239,7 +239,7 @@ export default {
                                 this.alertMessage = json.result;
                                 this.showAlert = true;
                                 // Set Details in Vue Store and redirect after 3 seconds
-                                if (json.status) {
+                                if (json.success) {
                                     // Set Details On Store
                                     // Redirect after 3 seconds
                                     setTimeout(() => {
