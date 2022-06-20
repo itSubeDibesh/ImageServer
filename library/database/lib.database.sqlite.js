@@ -29,6 +29,16 @@ class QueryBuilder {
     }
 
     /**
+     * @description Insert Type
+     * @static
+     * @memberof QueryBuilder
+     */
+    static insertType = {
+        SINGLE: "SELECT",
+        BULK: "BULK"
+    }
+
+    /**
      * @description Order Type
      * @static
      * @memberof QueryBuilder
@@ -278,9 +288,10 @@ class QueryBuilder {
      * @memberof QueryBuilder
      * @param {array} columns 
      * @param {array} values 
+     * @param{QueryBuilder.insertType} insertType - Insert Type
      * @returns {QueryBuilder}
      */
-    insert(columns, values) {
+    insert(columns, values, insertType = QueryBuilder.insertType.SINGLE) {
         // Resetting Query
         this.#sqlQuery = ""
         this.#currentStatement = QueryBuilder.statementType.INSERT;
@@ -289,7 +300,17 @@ class QueryBuilder {
             this.#sqlQuery += this.#currentStatement;
             this.#sqlQuery += ` INTO ${this.#table}`;
             this.#sqlQuery += ` (${[...columns]})`;
-            this.#sqlQuery += ` VALUES (${[...values]})`;
+            if (insertType == QueryBuilder.insertType.SINGLE)
+                this.#sqlQuery += ` VALUES (${[...values]})`;
+            else {
+                this.#sqlQuery += ` VALUES `;
+                values.forEach(value => {
+                    this.#sqlQuery += `(${[...value]}), `;
+                })
+                // Remove Last Comma
+                if (this.#sqlQuery.endsWith(", "))
+                    this.#sqlQuery = this.#sqlQuery.substring(0, this.#sqlQuery.length - 2);
+            }
         }
         return this;
     }

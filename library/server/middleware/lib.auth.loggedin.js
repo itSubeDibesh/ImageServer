@@ -43,17 +43,22 @@ class LoginMiddleware {
                     // Extracting JWT from Header
                     const token = request.headers.authorization.split(" ")[1];
                     // Check IF Token Has Expired
-                    if (Date.now() >= JWT.verify(token, config.jwt.secret).exp * 1e3) {
+                    try {
+                        if (Date.now() >= JWT.verify(token, config.jwt.secret).exp * 1e3) {
+                            Payload.result = "Token Expired, Please Login Again";
+                            response.status(StatusCode).send(Payload);
+                            return;
+                        }
+                        // Verifying JWT
+                        JWT.verify(token, config.jwt.secret, (err, decoded) => {
+                            if (err) response.status(StatusCode).send(Payload);
+                            // On Identity Check is Successful
+                            if (decoded.UserId == request.body.UserId) next();
+                        });
+                    } catch (error) {
                         Payload.result = "Token Expired, Please Login Again";
                         response.status(StatusCode).send(Payload);
-                        return;
                     }
-                    // Verifying JWT
-                    JWT.verify(token, config.jwt.secret, (err, decoded) => {
-                        if (err) response.status(StatusCode).send(Payload);
-                        // On Identity Check is Successful
-                        if (decoded.UserId == request.body.UserId) next();
-                    });
                 } else response.status(StatusCode).send(Payload);
             }
         }

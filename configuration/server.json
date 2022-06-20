@@ -92,8 +92,7 @@
             "/api/auth/logout",
             "/api/auth/login_check",
             "/api/image",
-            "/api/user",
-            "/uploads"
+            "/api/user"
         ]
     }
 }

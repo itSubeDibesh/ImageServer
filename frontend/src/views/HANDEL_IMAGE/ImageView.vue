@@ -2,11 +2,13 @@
     <div class="mb-3">
         <div class="row">
             <div class="col-12 mb-3  text-end">
-                <button class="btn btn-primary" v-on:click="Uploading"> <i class="fas fa-file-image"></i>
+                <button class="btn btn-primary m-2" v-on:click="Uploading"> <i class="fas fa-file-image"></i>
                     Upload
                     Image</button>
+                <button class="btn btn-primary m-2" v-on:click="fetchUserImages"> <i class="fas fa-refresh"></i>
+                    Refresh</button>
             </div>
-            <div class="mb-3 col-sm-12 col-lg-12 col-md-12 text-center" v-if="isUploading">
+            <div class="mb-3 col-12 text-center" v-if="isUploading">
                 <div class="card">
                     <Alert :type="alertType" :showAlert="showAlert" :message="alertMessage" @hideAlert="hideAlert" />
                     <PreLoader v-if="showPreloader" :keepLoading="true" />
@@ -19,8 +21,7 @@
                         </div>
                         <Alert :type="alertType" :showAlert="showAlert" :message="alertMessage"
                             @hideAlert="hideAlert" />
-                        <PreLoader v-if="showPreloader" :keepLoading="true" />
-                        <div v-else>
+                        <div>
                             <div v-if="!timeOutHandler.allowAccess">
                                 <h3 class="text-center"><strong>Enabling login after ⌚.. </strong></h3>
                                 <CountDown :allowAccess="timeOutHandler.allowAccess" :name="timeOutHandler.timer_name"
@@ -48,9 +49,35 @@
                     </div>
                 </div>
             </div>
-            <div class="mb-3 col-sm-12 col-lg-12 col-md-12 text-center" v-if="noImage">
+            <div class="mb-3 col-12 text-center" v-if="noImage">
                 <img :src="isDarkMode ? image.light : image.dark" style="width:50%; height:auto;" class="img img-fluid"
                     alt="Images Photo">
+            </div>
+            <div class="mb-3 col-12 text-center" v-if="!noImage">
+                <div class="row">
+                    <div class="col-sm-12 col-md-6 col-lg-3 mt-1 mb-3 mr-1" v-for="img in imagesData.images"
+                        :id="'IMAGE_' + img.ImageId" :ref="'IMAGE_' + img.ImageId" :key="img.ImageId">
+                        <div class="card">
+                            <div class="card-title">
+                                <div class="row px-3 py-3 pt-2 pb-1">
+                                    <div class="col-sm-6  text-start">
+                                        <i class="fas fa-calendar text-success"></i>
+                                        <strong>&nbsp;{{ removeTime(img.UploadDate) }}</strong>
+                                    </div>
+                                    <div class="col-sm-6 text-end">
+                                        <span v-on:click="deleteImage(img.ImageId)" style="cursor:pointer;">
+                                            <i class="fas fa-trash text-danger"></i></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body"
+                                :class="{ 'text-light bg-dark border-light': isDarkMode, 'text-dark bg-light border-dark': !isDarkMode }">
+                                <PreLoader v-if="imagesData.activateLoader" :keepLoading="true" />
+                                <img v-else :scr="img.FilePath" class="img img-fluid" :alt="img.FileName">
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -80,15 +107,20 @@ export default {
                 dark: require('@/assets/photos-pana-dark.svg'),
                 light: require('@/assets/photos-pana-light.svg')
             },
+            isDevEnv: window.location.href.includes('8079'),
             showPreloader: false,
             alertType: "",
             showAlert: false,
             alertMessage: "",
             captchaVerified: false,
             captchaToken: "",
-            uploadImages: [],
-            isUploading: false,
+            imagesData: {
+                images: [],
+                length: 0,
+                activateLoader: false
+            },
             noImage: true,
+            isUploading: false,
             CSRF: "",
             timeOutHandler: {
                 timeout: 0,
@@ -99,63 +131,159 @@ export default {
             is429: false,
         }
     },
-    mounted() {
+    beforeMount() {
         // Fetch CSRF Token
-        fetch('/api/auth/csrf', {
-            method: 'GET',
-            credentials: 'same-origin'
-        }).then(response => {
-            if (response.status === 2e2) {
-                return response.json();
-            }
-        }).then(json => {
-            this.CSRF = json.result.CsrfToken;
-        });
+        this.getCSRF()
+        setTimeout(() => {
+            this.fetchUserImages();
+            this.getCSRF();
+        }, 1e3);
     },
     methods: {
+        getCSRF() {
+            fetch('/api/auth/csrf', {
+                method: 'GET',
+                credentials: 'same-origin'
+            }).then(response => {
+                if (response.status === 2e2) {
+                    return response.json();
+                }
+            }).then(json => {
+                this.CSRF = json.result.CsrfToken;
+            });
+        },
+        removeTime(str) {
+            if (str.length != 0)
+                return str.split(' ')[0] || "";
+            console.log(str)
+        },
         Uploading() {
             this.isUploading = !this.isUploading;
-            if (this.uploadImages.length == 0) {
+            if (this.imagesData.length == 0) {
                 this.noImage = !this.noImage
             }
         },
-        onSubmit(e) {
-            e.preventDefault();
-            this.uploadImages = this.$refs.images.files;
-            if (this.uploadImages.length == 0) {
-                this.showAlert = true;
-                this.alertType = "danger";
-                this.alertMessage = "No image selected";
-                return;
-            } else {
-                // Captcha Check
-                if (this.captchaVerified == false) {
-                    this.showAlert = true;
-                    this.alertType = "danger";
-                    this.alertMessage = `Captcha Not Verified, Please Check and Try Again.`;
-                } else {
-                    this.showAlert = false;
-                    const Payload = {
-                        email: document.getElementById('email').value,
-                        password: document.getElementById('password').value,
-                        captcha: this.captchaToken
-                    }
-                    // Show Preloader on login button unless response if error hide preloader and show error in alert component
-                    this.showPreloader = true;
-                    // Make a request to login the user api
-                    fetch('/api/auth/login', {
+        deleteImage(imageId) {
+            this.$swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch("/api/image/delete", {
                         method: 'POST',
                         credentials: 'same-origin',
                         headers: {
-                            'Content-Type': 'multipart/form-data',
-                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
                             'X-CSRF-TOKEN': this.CSRF,
                             'Authorization': 'Bearer ' + this.userLoggedIn.token,
                         },
-                        body: JSON.stringify(Payload)
+                        body: JSON.stringify({ "UserId": this.userLoggedIn.user.UserId, "ImageId": imageId })
                     })
-                    // File Check
+                        .then(resp => resp.json())
+                        .then(response => {
+                            if (response.success) {
+                                // Delete Call 
+                                this.$swal.fire(
+                                    'Deleted!',
+                                    'Your file has been deleted.',
+                                    'success'
+                                ).then(() => {
+                                    this.fetchUserImages();
+                                })
+                            } else {
+                                this.$swal.fire(
+                                    'Error!',
+                                    'Something went wrong.',
+                                    'error'
+                                )
+                            }
+                        })
                 }
+            })
+        },
+        getImagePath(filePath) {
+            return (this.isDevEnv ? `http://localhost:8080/${filePath}` : `${filePath}`).replaceAll('//', '/')
+        },
+        fetchUserImages() {
+            fetch("/api/image/view", {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': this.CSRF,
+                    'Authorization': 'Bearer ' + this.userLoggedIn.token,
+                },
+                body: JSON.stringify({ "UserId": this.userLoggedIn.user.UserId })
+            })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        if (result.data.length > 0) {
+                            // Show Preloader For Specific Images
+                            this.imagesData.activateLoader = true;
+                            this.imagesData.images = result.data.images;
+                            this.imagesData.length = result.data.length;
+                            this.noImage = false;
+                            setTimeout(() => {
+                                this.imagesData.activateLoader = false;
+                            }, 1000);
+                        }
+                    }
+                })
+                .catch(error => {
+                    this.$store.commit("setAlert", {
+                        type: 'danger',
+                        message: error.message,
+                        showAlert: true
+                    })
+                });
+        },
+        onSubmit(e) {
+            e.preventDefault();
+            console.log(this.$refs.images.files[0]);
+            // Captcha Check
+            if (this.captchaVerified == false) {
+                this.showAlert = true;
+                this.alertType = "danger";
+                this.alertMessage = `Captcha Not Verified, Please Check and Try Again.`;
+            } else {
+                this.showAlert = false;
+                const formData = new FormData();
+                this.$refs.images.files.forEach(element => {
+                    formData.append('images', element);
+                });
+                formData.append('UserId', this.userLoggedIn.user.UserId);
+                formData.append('captcha', this.captchaToken);
+                // Show Preloader on login button unless response if error hide preloader and show error in alert component
+                this.showPreloader = true;
+                // Make a request to login the user api
+                fetch('/api/image/upload', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'X-CSRF-TOKEN': this.CSRF,
+                        'Authorization': 'Bearer ' + this.userLoggedIn.token,
+                    },
+                    body: formData
+                })
+                    .then(resp => resp.json())
+                    .then(response => {
+                        if (response.success) {
+                            this.showPreloader = false;
+                            this.fetchUserImages();
+                            this.Uploading();
+                        } else {
+                            this.showPreloader = false;
+                            this.showAlert = true;
+                            this.alertType = "danger";
+                            this.alertMessage = response.message;
+                        }
+                    })
             }
         },
         captchaVerify(token) {
@@ -178,6 +306,9 @@ export default {
     computed: {
         isDarkMode() {
             return this.$store.getters.appMode;
+        },
+        userLoggedIn() {
+            return this.$store.getters.userLoggedIn;
         }
     }
 }

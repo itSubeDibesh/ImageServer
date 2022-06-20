@@ -160,7 +160,7 @@ ImageRouter
                         appImageDir = `${ServerConfig.image.displayPath}/IMAGE_${request.body['UserId']}/`;
                     // Checking IF Image Directory Exists If Not Creating One
                     if (!FileSystem.dir_exists(imageDir)) FileSystem.mkdir(imageDir);
-                    let Query = [];
+                    let QueryColumn = [];
                     // Iterate Through each image in the request.files object and move the image to the imageDir
                     request.files.forEach(file => {
                         const File = FileSystem.dir_path(file.path) + "\\" + FileSystem.file_path(file.path);
@@ -177,35 +177,36 @@ ImageRouter
                             FileName = FileSystem.file_name(FileSystem.file_path(file.path)),
                             Extension = FileSystem.file_ext(FileSystem.file_path(file.path)),
                             FilePath = `${appImageDir}/${FileSystem.file_path(file.path)}`,
-                            FileSize = FileSystem.file_size(`./${FilePath}`),
-                            QueryColumn = [
-                                `${request.body['UserId']}`,
-                                `'${FileName}'`,
-                                `'${Extension}'`,
-                                `'${FilePath}'`,
-                                `${FileSize}`
-                            ],
-                            // SQL Query To Insert Image Data Into Database
-                            BuildQuery = ImageTable.insert(Image.InsertColumns, QueryColumn).build();
-                        Query.push(BuildQuery);
+                            FileSize = FileSystem.file_size(`./${imageDir}/${FileSystem.file_path(file.path)}`);
+                        QueryColumn.push([
+                            `${request.body['UserId']}`,
+                            `'${FileName}'`,
+                            `'${Extension}'`,
+                            `'${FilePath}'`,
+                            `${FileSize}`
+                        ]);
                     })
                     // Executing the Query
-                    Query.forEach(query => {
-                        Database.executeQuery(Query.toString(), (resp) => {
+                    Database.executeQuery(
+                        ImageTable.insert(Image.InsertColumns, QueryColumn, QueryBuilder.insertType.BULK).build(), (resp) => {
                             if (resp.status) {
-                                // If all the images are moved successfully then set the Payload to success
                                 Payload.status = "success";
                                 Payload.success = true;
                                 Payload.result = "Images Uploaded Successfully";
                                 statusCode = 200;
                                 statusMessage = "OK";
-                                // Logging the response
-                                ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
-                                // Sending the response
-                                response.status(statusCode).send(Payload);
-                            };
+                            } else {
+                                Payload.status = "error";
+                                Payload.success = false;
+                                Payload.result = "Images Uploaded Failed";
+                                statusCode = 500;
+                                statusMessage = "Internal Server Error";
+                            }
+                            // Logging the response
+                            ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                            // Sending the response
+                            response.status(statusCode).send(Payload);
                         })
-                    })
                 } else {
                     // Logging the response
                     ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
