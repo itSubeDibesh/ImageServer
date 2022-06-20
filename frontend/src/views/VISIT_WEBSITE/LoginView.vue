@@ -20,7 +20,7 @@
                             <CountDown :allowAccess="timeOutHandler.allowAccess" :name="timeOutHandler.timer_name"
                                 :timeout="timeOutHandler.timeout" :showTimer="timeOutHandler.showTimer" />
                         </div>
-                        <form v-on:submit="onSubmit">
+                        <form v-on:submit="onSubmit" v-else>
                             <div class="form-floating text-dark mb-3">
                                 <input type="email" class="form-control" id="email" placeholder="name@example.com"
                                     required v-on:input="checkEmail">
@@ -280,7 +280,7 @@ export default {
                     this.emailAccepted = true;
                     this.toggle(event.target)('is-invalid', 'is-valid')
                 } else {
-                    emailAccepted = false;
+                    this.emailAccepted = false;
                     this.toggle(event.target)('is-valid', 'is-invalid')
                 }
             } else {

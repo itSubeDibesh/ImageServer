@@ -45,7 +45,10 @@ export default {
       globalRoutes: ['/reset'],
       administratorRoutes: ['/users', '/dashboard'],
       preLoginRoutes: ['/login', '/register', '/', '/about', '/analyze', '/forget', '/verify'],
-      postLoginRoutes: ['/images'],
+      postLoginRoutes: [
+        '/images',
+        '/settings'
+      ],
     };
   },
   methods: {
@@ -151,7 +154,11 @@ export default {
       if (this.preLoginRoutes.includes(to.path)) {
         // User Logged In  -> Don't AllowPreLoggedin Access 
         if (this.userLoggedIn.loggedIn && this.userLoggedIn.token != null) {
-          this.$router.push('/images');
+          if (this.userLoggedIn.user.UserGroup != 'ADMINISTRATOR') {
+            this.$router.push('/images');
+          } else {
+            this.$router.push('/dashboard');
+          }
         }
       }
       // Post logged in routes are not accessible from pre logged in user
@@ -159,12 +166,6 @@ export default {
         // User Not Logged In  -> Don't Allow Post Loggedin Access 
         if (!this.userLoggedIn.loggedIn || this.userLoggedIn.token == null) {
           this.$router.push('/login');
-        }
-      }
-      // Administrator Routes are not accessible from non-administrator user
-      if (this.administratorRoutes.includes(to.path)) {
-        if (this.userLoggedIn.loggedIn && this.userLoggedIn.user.UserGroup != 'ADMINISTRATOR') {
-          this.$router.push('/images');
         }
       }
     }

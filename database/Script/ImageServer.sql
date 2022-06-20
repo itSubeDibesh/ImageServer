@@ -57,8 +57,8 @@ CREATE TABLE
 CREATE TRIGGER
     IF NOT EXISTS password_update_at_trigger AFTER
 UPDATE
-    ON PASSWORD BEGIN
-UPDATE PASSWORD
+    ON old_passwords BEGIN
+UPDATE old_passwords
 SET UpdatedAt = (DATETIME('now', 'localtime'))
 WHERE PasswordId = NEW.PasswordId;
 
@@ -70,13 +70,23 @@ CREATE TABLE
     IF NOT EXISTS image (
         ImageId INTEGER PRIMARY KEY AUTOINCREMENT,
         UserId INTEGER NOT NULL,
-        FileName TEXT NOT NULL,
+        FileName TEXT NOT NULL UNIQUE,
         Extension VARCHAR(10) NOT NULL,
         FilePath TEXT NOT NULL,
-        FileType VARCHAR(10) NOT NULL,
         FileSize INTEGER NOT NULL,
         UploadDate DATETIME DEFAULT (DATETIME('now', 'localtime')),
         CONSTRAINT fk_user_image FOREIGN KEY (UserId) REFERENCES users (UserId)
         ON
         DELETE CASCADE
     );
+
+-- Creating `uploaddate_update_at_trigger` Trigger
+CREATE TRIGGER
+    IF NOT EXISTS uploaddate_update_at_trigger AFTER
+UPDATE
+    ON image BEGIN
+UPDATE image
+SET UploadDate = (DATETIME('now', 'localtime'))
+WHERE ImageId = NEW.ImageId;
+
+END;

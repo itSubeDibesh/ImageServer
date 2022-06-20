@@ -266,6 +266,15 @@ class Utility {
         }
         return text;
     }
+    /**  
+     * @static
+     * @function UcFirst
+     * @memberof Utility
+     * @description Capitalizes the first letter of a string
+     * @param {string} str - The string to capitalize
+     * @returns {string} The capitalized string
+     */
+    static UcFirst = (str) => str.charAt(0).toUpperCase() + str.slice(1)
 }
 // Exporting Module
 module.exports = Utility;

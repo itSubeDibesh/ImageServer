@@ -41,17 +41,14 @@ class SessionExpiry {
                     // Evaluate if the request header includes same token as stored in store
                     if (tokensStore.has(token)) {
                         // Check Expiry of token and remove token from store if expired
-                        if (Date.now() >= JWT.verify(token, config.jwt.secret).exp * 1e3) {
-                            tokensStore.delete(token);
-                        }
                         response.status(401).send({
                             status: "error",
                             success: false,
                             result: "Session Expired, Please Login Again"
                         });
-                    } else next();
+                    }
                 }
-            } else next();
+            } next();
         }
     }
 }

@@ -22,7 +22,7 @@ class LoginMiddleware {
             let Payload = {
                 status: "error",
                 success: false,
-                result: "Unauthorized Access, Please Login First"
+                result: "Unauthorized Access"
             }, StatusCode = 401,
                 Escape = [];
             // check if requested url is not in array
@@ -36,6 +36,7 @@ class LoginMiddleware {
                 // Checking If UserId Is Not Passed On Token
                 if (request.body.UserId == null) {
                     response.status(StatusCode).send(Payload);
+                    return;
                 }
                 // If other url check header containing JWT
                 if (request.headers.authorization) {
@@ -45,6 +46,7 @@ class LoginMiddleware {
                     if (Date.now() >= JWT.verify(token, config.jwt.secret).exp * 1e3) {
                         Payload.result = "Token Expired, Please Login Again";
                         response.status(StatusCode).send(Payload);
+                        return;
                     }
                     // Verifying JWT
                     JWT.verify(token, config.jwt.secret, (err, decoded) => {

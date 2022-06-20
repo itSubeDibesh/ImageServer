@@ -1,3 +1,26 @@
+  var myHeaders = new Headers();
+myHeaders.append("accept", "application/json");
+myHeaders.append("X-CSRF-TOKEN", "xqWIslHC-CKpSKtwyiSEnNinjeXSavXeziio");
+myHeaders.append("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VySWQiOjEsIkVtYWlsIjoic3lzYWRtaW5AaW1hZ2VzZXJ2ZXIuY29tIiwiVXNlckdyb3VwIjoiQURNSU5JU1RSQVRPUiIsImlhdCI6MTY1NTY4Njk5NywiZXhwIjoxNjU1Njk0MTk3fQ.dLIo7E6f6knR01ZWHowZqF2vLEln-XXUPGu64waRZy0");
+myHeaders.append("Cookie", "_csrf=Ds1fGBPWCj84M9WAMwNAhOZr");
+
+var formdata = new FormData();
+formdata.append("image", fileInput.files[0], "/C:/Users/kingr/Downloads/flash_logo.png");
+formdata.append("image", fileInput.files[0], "/C:/Users/kingr/Downloads/College.ico");
+formdata.append("UserId", "1");
+
+var requestOptions = {
+		method: 'POST',
+		headers: myHeaders,
+		body: formdata,
+		redirect: 'follow'
+};
+
+fetch("http://localhost:8080/api/image/upload", requestOptions)
+		.then(response => response.text())
+		.then(result => console.log(result))
+		.catch(error => console.log('error', error));
+
   ImageRouter
         // [ ] - ADD ACCESS CONTROL MIDDLEWARE
         .get('/', (request, response) => {

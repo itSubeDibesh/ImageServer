@@ -15,12 +15,15 @@
     "setup:frontend": "CD ./frontend && npm install",
     "setup:backend": "npm install",
     "setup": "npm run setup:backend && npm run setup:frontend",
+    "open:dev": "open-cli http://localhost:8079",
+    "open:dev-backend": "open-cli http://localhost:8080/docs",
+    "open:prod": "open-cli http://localhost:8080",
     "clean": "set WORK_ENV=development && node cleanup.js",
-    "dev:frontend": "set WORK_ENV=development && cd frontend && npm run serve",
-    "dev:backend": "set WORK_ENV=development && nodemon --ignore logs/ --ignore tests/ --ignore backend/config/ && index.js",
+    "dev:frontend": "set WORK_ENV=development && npm run open:dev && cd frontend && npm run serve",
+    "dev:backend": "set WORK_ENV=development && npm run open:dev-backend && nodemon --ignore logs/ --ignore tests/ --ignore backend/config/ && index.js",
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
     "build:frontend": "set WORK_ENV=production && cd frontend && npm run build",
-    "serve:backend": "set WORK_ENV=production && node index.js",
+    "serve:backend": "set WORK_ENV=production && npm run open:dev && node index.js",
     "serve": "set WORK_ENV=production && npm run build:frontend && npm run serve:backend"
   },
   "keywords": [
@@ -42,6 +45,7 @@
     "multer": "^1.4.4-lts.1",
     "node-fetch": "^3.2.5",
     "nodemailer": "^6.7.5",
+    "open-cli": "^7.0.1",
     "snipercode.filesystem": "^1.0.1",
     "sqlite3": "^5.0.8",
     "xss-clean": "^0.1.1"

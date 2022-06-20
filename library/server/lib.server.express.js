@@ -262,8 +262,6 @@ class Server {
                     // Error Checking
                     if (err) {
                         this.Response.log(`✉ [500 Internal Error] with PAYLOAD [${JSON.stringify({ success: !1, status: 500, result: err.message })}]`);
-                        // Send response
-                        res.status(500).send({ success: !1, status: 500, result: err.message });
                     }
                     // Making other middleware calls
                     else next();
@@ -336,29 +334,6 @@ class Server {
         return this;
     }
 
-    /**
-     * @description Sets Session Configuration 
-     * @memberof Server
-     * @returns {object}
-     */
-    #setSessionConfiguration() {
-        // Session Configuration Extraction
-        const { name, secret, resave, saveUninitialized, cookieMaxAge, secureCookie } = Configurations.Server.server.session;
-        return {
-            name,
-            // Session Secret
-            secret,
-            resave,
-            saveUninitialized,
-            store: new Packages.Session.MemoryStore(),
-            cookie: {
-                // Cookie Expiry in Milliseconds (7 Days)
-                maxAge: cookieMaxAge,
-                // Cookie is only available to the same domain
-                secure: secureCookie
-            }
-        }
-    }
 
     /**
      * @description Handle Routes for HTTP 
@@ -396,6 +371,7 @@ class Server {
                 .use(Packages.Express.static('./public'))
         else
             this.Logger.cli.error(`🌎 Static frontend files disabled in development mode`);
+        this.server.use("/uploads", Packages.Express.static('./storage'))
         return this;
     }
 

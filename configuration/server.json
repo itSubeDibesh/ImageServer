@@ -28,6 +28,10 @@
             "login": {
                 "requests": 10,
                 "minutes": 10
+            },
+            "image": {
+                "requests": 20,
+                "minutes": 10
             }
         },
         "expiry": {
@@ -52,7 +56,8 @@
         ],
         "maxUploads": 10,
         "maxFileSize": 10485760,
-        "storagePath": "storage/"
+        "storagePath": "storage/",
+        "displayPath": "uploads/"
     },
     "database": {
         "scriptName": "ImageServer"
@@ -85,8 +90,10 @@
         "expiry": "2h",
         "appliedEndPoints": [
             "/api/auth/logout",
+            "/api/auth/login_check",
             "/api/image",
-            "/api/user"
+            "/api/user",
+            "/uploads"
         ]
     }
 }

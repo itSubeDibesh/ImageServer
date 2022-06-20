@@ -23,7 +23,7 @@ const
         setRequestLimiter, DevelopmentEnv, MailHandel,
         ServerConfig, RandomString, getDatabase,
         timeExceeded, monthToMs, minToMs,
-        QueryBuilder, JWT, msToS
+        QueryBuilder, JWT
 
     } = require("../../../library/server/lib.utility.express"),
     // Extracting Packages
@@ -508,7 +508,10 @@ AuthRouter.post("/login",
 AuthRouter
     .post('/logout',
         // User Id Check
-        [check(['UserId']).not().isEmpty()],
+        [
+            check(['UserId']).not().isEmpty(),
+            check(['UserId']).isNumeric(true)
+        ],
         // Handle Request
         (request, response) => {
             let Payload = {
@@ -1121,7 +1124,7 @@ AuthRouter.post("/reset",
                                                         Database
                                                             .executeQuery(
                                                                 UserTable
-                                                                    .update(User.ResetColumns, [`'${newHashedPAssword}'`, false, `(DATETIME('now', 'localtime')`])
+                                                                    .update(User.ResetColumns, [`'${newHashedPAssword}'`, false, `DATETIME('now', 'localtime')`])
                                                                     .where(`UserId = ${userId}`)
                                                                     .build()
                                                                 ,
@@ -1486,7 +1489,10 @@ AuthRouter.post("/login_check",
     // Checking for CSRF Token
     csrfProtection,
     // User Id Check
-    [check(['UserId']).not().isEmpty()],
+    [
+        check(['UserId']).not().isEmpty(),
+        check(['UserId']).isNumeric(true)
+    ],
     (request, response) => {
         let Payload = {
             status: "error",
