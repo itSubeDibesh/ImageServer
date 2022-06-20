@@ -23,7 +23,7 @@
                             @hideAlert="hideAlert" />
                         <div>
                             <div v-if="!timeOutHandler.allowAccess">
-                                <h3 class="text-center"><strong>Enabling login after ⌚.. </strong></h3>
+                                <h3 class="text-center"><strong>Enabling uploads after ⌚.. </strong></h3>
                                 <CountDown :allowAccess="timeOutHandler.allowAccess" :name="timeOutHandler.timer_name"
                                     :timeout="timeOutHandler.timeout" :showTimer="timeOutHandler.showTimer" />
                             </div>
@@ -143,6 +143,29 @@ export default {
             this.fetchUserImages();
             this.getCSRF();
         }, 1e3);
+    },
+    mounted() {
+        // Timeout Handler
+        // Subscribing to MutationObserver
+        this.$store.subscribe((mutation) => {
+            if (mutation.type == "setTimeOut") {
+                if (mutation.payload.title == this.timeOutHandler.timer_name) {
+                    this.timeOutHandler.allowAccess = false;
+                    this.timeOutHandler.showTimer = true;
+                    this.timeOutHandler.timeout = mutation.payload.timeOut;
+                }
+            }
+            else if (mutation.type == "removeTimeout") {
+                if (this.timeOutHandler.timer_name == mutation.payload.title) {
+                    this.timeOutHandler.showTimer = false;
+                    this.timeOutHandler.allowAccess = true;
+                    this.timeOutHandler.timeout = 0;
+                    setTimeout(() => {
+                        window.location.reload()
+                    }, 5e2)
+                }
+            }
+        })
     },
     methods: {
         getCSRF() {
@@ -273,17 +296,29 @@ export default {
                     },
                     body: formData
                 })
-                    .then(resp => resp.json())
                     .then(response => {
-                        if (response.success) {
+                        this.is429 = response.status === 429;
+                        return response.json();
+                    })
+                    .then(response => {
+                        if (this.is429) {
                             this.showPreloader = false;
-                            this.fetchUserImages();
-                            this.Uploading();
+                            this.timeOutHandler.allowAccess = false;
+                            this.timeOutHandler.showTimer = true;
+                            this.timeOutHandler.timeout = response.data.timeout;
                         } else {
-                            this.showPreloader = false;
-                            this.showAlert = true;
-                            this.alertType = "danger";
-                            this.alertMessage = response.message;
+                            setTimeout(() => {
+                                if (response.success) {
+                                    this.showPreloader = false;
+                                    this.fetchUserImages();
+                                    this.Uploading();
+                                } else {
+                                    this.showPreloader = false;
+                                    this.showAlert = true;
+                                    this.alertType = "danger";
+                                    this.alertMessage = response.message;
+                                }
+                            }, 1e3);
                         }
                     })
             }
