@@ -73,7 +73,7 @@
                             <div class="card-body"
                                 :class="{ 'text-light bg-dark border-light': isDarkMode, 'text-dark bg-light border-dark': !isDarkMode }">
                                 <PreLoader v-if="imagesData.activateLoader" :keepLoading="true" />
-                                <img v-else :scr="img.FilePath" class="img img-fluid" :alt="img.FileName">
+                                <img v-else :src="img.FilePath" class="img img-fluid" :alt="img.FileName">
                             </div>
                         </div>
                     </div>
@@ -206,9 +206,6 @@ export default {
                 }
             })
         },
-        getImagePath(filePath) {
-            return (this.isDevEnv ? `http://localhost:8080/${filePath}` : `${filePath}`).replaceAll('//', '/')
-        },
         fetchUserImages() {
             fetch("/api/image/view", {
                 method: 'POST',
@@ -232,6 +229,8 @@ export default {
                             setTimeout(() => {
                                 this.imagesData.activateLoader = false;
                             }, 1000);
+                        } else {
+                            this.noImage = true;
                         }
                     }
                 })
