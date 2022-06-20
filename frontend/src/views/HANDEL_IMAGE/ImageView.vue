@@ -55,8 +55,9 @@
             </div>
             <div class="mb-3 col-12 text-center" v-if="!noImage">
                 <div class="row">
-                    <div class="col-sm-12 col-md-6 col-lg-3 mt-1 mb-3 mr-1" v-for="img in imagesData.images"
-                        :id="'IMAGE_' + img.ImageId" :ref="'IMAGE_' + img.ImageId" :key="img.ImageId">
+                    <div class="col-sm-12 col-md-6 col-lg-3 mt-1 mb-3 mr-1"
+                        v-for="(img, imageIndex) in imagesData.images" :id="'IMAGE_' + img.ImageId"
+                        :ref="'IMAGE_' + img.ImageId" :key="imageIndex">
                         <div class="card">
                             <div class="card-title">
                                 <div class="row px-3 py-3 pt-2 pb-1">
@@ -73,7 +74,9 @@
                             <div class="card-body"
                                 :class="{ 'text-light bg-dark border-light': isDarkMode, 'text-dark bg-light border-dark': !isDarkMode }">
                                 <PreLoader v-if="imagesData.activateLoader" :keepLoading="true" />
-                                <img v-else :src="img.FilePath" class="img img-fluid" :alt="img.FileName">
+                                <a :href="img.FilePath" data-lightbox="{{'Image'+removeTime(img.UploadDate)}}" v-else>
+                                    <img :src="img.FilePath" class="img img-fluid" :alt="img.FileName">
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -91,6 +94,7 @@ import PreLoader from '@/components/PreLoader.vue'
 import Alert from '@/components/Alert.vue';
 import { VueRecaptcha } from 'vue-recaptcha';
 
+
 export default {
     name: 'Images',
     components: {
@@ -107,6 +111,7 @@ export default {
                 dark: require('@/assets/photos-pana-dark.svg'),
                 light: require('@/assets/photos-pana-light.svg')
             },
+            indexCoolBox: null,
             isDevEnv: window.location.href.includes('8079'),
             showPreloader: false,
             alertType: "",
@@ -155,7 +160,6 @@ export default {
         removeTime(str) {
             if (str.length != 0)
                 return str.split(' ')[0] || "";
-            console.log(str)
         },
         Uploading() {
             this.isUploading = !this.isUploading;
@@ -244,7 +248,6 @@ export default {
         },
         onSubmit(e) {
             e.preventDefault();
-            console.log(this.$refs.images.files[0]);
             // Captcha Check
             if (this.captchaVerified == false) {
                 this.showAlert = true;

@@ -7,6 +7,11 @@ import store from './store'
 import VueSweetalert2 from 'vue-sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 
+// Lightbox
+
+import 'lightbox2/dist/css/lightbox.min.css';
+import 'lightbox2/dist/js/lightbox.min.js';
+
 // FontAwesome Import
 import '@fortawesome/fontawesome-free/js/all.min';
 
