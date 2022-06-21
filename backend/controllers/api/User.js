@@ -22,20 +22,22 @@ const
     UserTable = new QueryBuilder().currentTable("users"),
     OldPasswordTable = new QueryBuilder().currentTable("old_passwords"),
     // Extracting Expires
+    RegisterRequestLimit = ServerConfig.server.limit.register,
     ResetExpiry = ServerConfig.server.expiry.password,
     // Preparing Columns
     User = {
+        InsertColumns: ["UserName", "FullName", "Email", "PASSWORD", "UserGroup", "VerificationToken"],
         SelectColumns: ["UserId", "UserName", "FullName", "Email", "UserGroup", "IsDisabled", "IsLoggedIn", "VerificationStatus", "LastPasswordResetDate", "CreatedAt", "UpdatedAt"],
         UpdateFullName: ["FullName"],
         SelectResetColumns: ["UserId", "UserName", "Email", "PASSWORD"],
     },
     Old_Passwords = {
         InsertColumns: ["UserId", "ResetToken", "HashedPassword"],
+    },
+    userRoles = {
+        Admin: "ADMINISTRATOR",
+        User: "USER"
     }
-userRoles = {
-    Admin: "ADMINISTRATOR",
-    User: "USER"
-}
 // Extracting Router from util
 UserRouter = Router();
 /**
@@ -188,15 +190,268 @@ UserRouter
                 });
             }
         })
-
+/**
+ * @swagger
+ * /api/user/add:
+ *  post:
+ *      tags: [User]
+ *      summary: Register a new user admin user -> Requires Access Token
+ *      parameters:
+ *          - in: header
+ *            name: X-CSRF-TOKEN
+ *            schema:
+ *              type: string
+ *            description: CSRF Token
+ *            required: true
+ *      security:
+ *          - bearerAuth: []
+ *      requestBody:
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      properties:
+ *                          AdminId:
+ *                              type: number
+ *                              required: true
+ *                          username:
+ *                              type: string
+ *                              required: true
+ *                          fullname:
+ *                              type: string
+ *                              required: true
+ *                          email:
+ *                              type: string
+ *                              required: true
+ *                              format: email
+ *      responses:
+ *          200:
+ *              description: Success
+ *              content: 
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              success:
+ *                                  type: boolean
+ *                                  example: true  
+ *                              status:
+ *                                  type: string
+ *                                  example: success
+ *                              result:
+ *                                  type: string
+ *                                  example: "User registered successfully"
+ *          400:
+ *              description: Bad Request
+ *              content: 
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              success:
+ *                                  type: boolean
+ *                                  example: false  
+ *                              status:
+ *                                  type: string
+ *                                  example: error
+ *                              result:
+ *                                  type: string
+ *                                  example: "Username, Password, Email or Fullname not found in the request or might be invalid."
+ *          500:
+ *              description: Internal Server Error
+ *              content: 
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              success:
+ *                                  type: boolean
+ *                                  example: false  
+ *                              status:
+ *                                  type: string
+ *                                  example: error
+ *                              result:
+ *                                  type: string
+ *                                  example: "User Registration Failed, Please Try Again Later."
+ */
 UserRouter
-    .post("/add", (request, response) => {
-        // Send a reset request to delete user and its files
-        response.send({
-            status: "success",
-            message: "Welcome to SniperCode API",
-        });
-    })
+    .post("/add",
+        // Checking for CSRF Token
+        csrfProtection,
+        // Validation Check
+        [
+            check('AdminId').not().isEmpty(),
+            check('AdminId').isNumeric(true),
+            check("username", "Username is required").notEmpty(),
+            check('username', 'Username must be 6-16 characters long').isLength({ min: 5, max: 16 }),
+            check("email", "Email is required").notEmpty(),
+            check("email", "Email is not valid").isEmail(),
+            check("fullname", "Fullname is required").notEmpty()
+        ],
+        // Setup Request Limit -> Requests per minute -> 3 request 10 minutes 
+        setRequestLimiter(minToMs(RegisterRequestLimit.minutes), RegisterRequestLimit.requests),
+        (request, response) => {
+            let Payload = {
+                success: false,
+                status: "error",
+                result: "AdminId, Username, Password, Email, Role or Fullname not found in the request.",
+            },
+                statusCode = 400,
+                statusMessage = "Bad Request";
+            // Error Check from Request
+            if (!validationResult(request).isEmpty()) {
+                Payload.success = false;
+                Payload.status = "error";
+                Payload.result = "AdminId, Username, Password, Email, Role or Fullname not found in the request or might be invalid.";
+                statusCode = 400;
+                statusMessage = "Bad Request";
+                // Logging the response
+                ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                // Sending the response
+                response.status(statusCode).send(Payload);
+            } else {
+                const
+                    RandomPassword = SHA_512(request.body.email + RandomString(16) + "IMAGE_SERVER_HASH"),
+                    ResetToken = RandomString(25),
+                    VerificationToken = RandomString(20);
+                // Fetch Admin Check Admin
+                Database
+                    .executeQuery(
+                        UserTable
+                            .select(QueryBuilder.selectType.ALL)
+                            .where(`UserId = ${request.body.AdminId}`)
+                            .build(),
+                        (respAdmin => {
+                            if (respAdmin.status) {
+                                const { UserGroup } = respAdmin.rows[0];
+                                if (UserGroup == userRoles.Admin) {
+                                    // Insert User
+                                    Database
+                                        .executeQuery(
+                                            UserTable
+                                                .insert(User.InsertColumns, [
+                                                    `'${request.body.username}'`,
+                                                    `'${request.body.fullname}'`,
+                                                    `'${request.body.email}'`,
+                                                    `'${RandomPassword}'`,
+                                                    `'${userRoles.Admin}'`,
+                                                    `'${VerificationToken}'`,
+                                                ]).build(),
+                                            (createResp => {
+                                                if (createResp.status) {
+                                                    // Fetch User
+                                                    Database
+                                                        .executeQuery(
+                                                            UserTable
+                                                                .select(QueryBuilder.selectType.ALL)
+                                                                .where(`Email = '${request.body.email}' AND PASSWORD = '${RandomPassword}'`)
+                                                                .build(),
+                                                            (selectResp => {
+                                                                if (selectResp.status) {
+                                                                    // Reset Password
+                                                                    const NewUserDetails = selectResp.rows[0];
+                                                                    Database
+                                                                        .executeQuery(
+                                                                            OldPasswordTable
+                                                                                .insert(Old_Passwords.InsertColumns,
+                                                                                    [
+                                                                                        `${NewUserDetails.UserId}`,
+                                                                                        `'${ResetToken}'`,
+                                                                                        `'${RandomPassword}'`
+                                                                                    ])
+                                                                                .build(),
+                                                                            (res => {
+                                                                                const
+                                                                                    ResetEndPoint = `http://localhost:${DevelopmentEnv ? 8079 : ServerConfig.server.PORT}/reset?token=${ResetToken}_${NewUserDetails.UserId}&&email=${request.body.email}`,
+                                                                                    // Email Verification
+                                                                                    VeriFicationEndPoint = `http://localhost:${DevelopmentEnv ? 8079 : ServerConfig.server.PORT}/verify?token=${VerificationToken}&&email=${request.body.email}`,
+                                                                                    EmailConfig = {
+                                                                                        subject: "Set password and verify your email, ImageServer 🔐",
+                                                                                        title: "ImageServer - Email Verification and Setting Password ✉",
+                                                                                        user: request.body.username,
+                                                                                        email: request.body.email,
+                                                                                        message: `Follow this link to set your password.<br><br>
+                                                                                                    <span class="text-center"><a href="${ResetEndPoint}" target="_blank" class="btn btn-success">CLick Me 👆 To Set Password</a></span>
+                                                                                                    <br> OR --> <a href="${ResetEndPoint}" target="_blank" class="link-success">${ResetEndPoint}</a>
+                                                                                                    <strong class="text-danger">This Link is Only Valid for ${ResetExpiry.resetExpireInMinute} Minutes.</strong>
+                                                                                                    <hr>
+                                                                                                    Follow this link to verify your email address.<br><br>
+                                                                                                    <span class="text-center"><a href="${VeriFicationEndPoint}" target="_blank" class="btn btn-success">CLick Me 👆 To Verify Email</a></span>
+                                                                                                    <br> OR --> <a href="${VeriFicationEndPoint}" target="_blank" class="link-success">${VeriFicationEndPoint}</a>
+                                                                                                    `,
+                                                                                    }
+                                                                                    ;
+                                                                                if (res.status) {
+                                                                                    // Success
+                                                                                    // Send Email to User
+                                                                                    MailHandel.sendEmail(EmailConfig.subject, EmailConfig.email, EmailConfig.user, EmailConfig.title, EmailConfig.message)
+                                                                                    // Success Response
+                                                                                    Payload.success = true;
+                                                                                    Payload.status = "success";
+                                                                                    Payload.result = `User with Email ${request.body.email} created successfully, Check Email.`;
+                                                                                    statusCode = 200;
+                                                                                    statusMessage = "Ok";
+                                                                                } else {
+                                                                                    // Error
+                                                                                    Payload.success = false;
+                                                                                    Payload.status = "error";
+                                                                                    Payload.result = "Create Request Failed, Please Try Again Later.";
+                                                                                    statusCode = 500;
+                                                                                    statusMessage = "Internal Server Error";
+                                                                                }
+                                                                                // Logging the response
+                                                                                ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                                                                // Sending the response
+                                                                                response.status(statusCode).send(Payload);
+                                                                            })
+                                                                        )
+                                                                } else {
+                                                                    // Error
+                                                                    Payload.success = false;
+                                                                    Payload.status = "error";
+                                                                    Payload.result = "Problem in fetching user.";
+                                                                    statusCode = 500;
+                                                                    statusMessage = "Internal Server Error";
+                                                                    // Logging the response
+                                                                    ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                                                    // Sending the response
+                                                                    response.status(statusCode).send(Payload);
+                                                                }
+                                                            })
+                                                        )
+                                                }
+                                                else {
+                                                    // Error
+                                                    Payload.success = false;
+                                                    Payload.status = "error";
+                                                    Payload.result = "User Registration Failed, Username or Email already exists.";
+                                                    statusCode = 500;
+                                                    statusMessage = "Internal Server Error";
+                                                    // Logging the response
+                                                    ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                                    // Sending the response
+                                                    response.status(statusCode).send(Payload);
+                                                }
+                                            })
+                                        )
+                                } else {
+                                    // Error
+                                    Payload.success = false;
+                                    Payload.status = "error";
+                                    Payload.result = "Invalid Request, Admin Id is not valid.";
+                                    statusCode = 500;
+                                    statusMessage = "Internal Server Error";
+                                    // Logging the response
+                                    ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                    // Sending the response
+                                    response.status(statusCode).send(Payload);
+                                }
+                            }
+                        }
+                        )
+                    )
+            }
+        })
 
 UserRouter
     .post("/delete", (request, response) => {
@@ -319,8 +574,8 @@ UserRouter
         [
             check("Email", "Email is required").notEmpty(),
             check("Email", "Email is not valid").isEmail(),
-            check(['AdminId']).not().isEmpty(),
-            check(['AdminId']).isNumeric(true)
+            check("AdminId").not().isEmpty(),
+            check("AdminId").isNumeric(true)
         ],
         (request, response) => {
             let Payload = {
@@ -351,93 +606,104 @@ UserRouter
                             .build(),
                         (respAdmin => {
                             if (respAdmin.status) {
-                                const { UserGroup } = respAdmin.rows[0];
+                                const { UserGroup, UserId } = respAdmin.rows[0];
                                 if (UserGroup == userRoles.Admin) {
-                                    // Query User Details Using Email
-                                    Database
-                                        .executeQuery(
-                                            UserTable
-                                                .select(QueryBuilder.selectType.COLUMN, User.SelectResetColumns)
-                                                .where(`Email = '${request.body['Email']}'`)
-                                                .build(),
-                                            (res => {
-                                                if (res.status) {
-                                                    const UserDetails = res.rows[0];
-                                                    if (UserDetails) {
-                                                        // Generate Token and Store on Old Password DB
-                                                        const
-                                                            ResetToken = RandomString(25),
-                                                            ResetEndPoint = `http://localhost:${DevelopmentEnv ? 8079 : ServerConfig.server.PORT}/reset?token=${ResetToken}_${UserDetails.UserId}&&email=${request.body.email}`,
-                                                            EmailConfig = {
-                                                                subject: "Reset your password, ImageServer 🔐",
-                                                                title: "ImageServer - Reset Password requested by Admin ✉",
-                                                                user: UserDetails.UserName,
-                                                                email: UserDetails.Email,
-                                                                message: `Follow this link to reset your password ${UserDetails.UserName}.<br><br>
+                                    if (UserId == request.body.AdminId) {
+                                        Payload.success = false;
+                                        Payload.status = "error";
+                                        Payload.result = "Admin can't send reset request.";
+                                        statusCode = 400;
+                                        statusMessage = "Bad Request";
+                                        // Logging the response
+                                        ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                        // Sending the response
+                                        response.status(statusCode).send(Payload);
+                                    } else
+                                        // Query User Details Using Email
+                                        Database
+                                            .executeQuery(
+                                                UserTable
+                                                    .select(QueryBuilder.selectType.COLUMN, User.SelectResetColumns)
+                                                    .where(`Email = '${request.body['Email']}'`)
+                                                    .build(),
+                                                (res => {
+                                                    if (res.status) {
+                                                        const UserDetails = res.rows[0];
+                                                        if (UserDetails) {
+                                                            // Generate Token and Store on Old Password DB
+                                                            const
+                                                                ResetToken = RandomString(25),
+                                                                ResetEndPoint = `http://localhost:${DevelopmentEnv ? 8079 : ServerConfig.server.PORT}/reset?token=${ResetToken}_${UserDetails.UserId}&&email=${request.body.email}`,
+                                                                EmailConfig = {
+                                                                    subject: "Reset your password, ImageServer 🔐",
+                                                                    title: "ImageServer - Reset Password requested by Admin ✉",
+                                                                    user: UserDetails.UserName,
+                                                                    email: UserDetails.Email,
+                                                                    message: `Follow this link to reset your password ${UserDetails.UserName}.<br><br>
                                                     <span class="text-center"><a href="${ResetEndPoint}" target="_blank" class="btn btn-success">CLick Me 👆</a></span>
                                                     <br> OR --> <a href="${ResetEndPoint}" target="_blank" class="link-success">${ResetEndPoint}</a><br>
                                                     <strong class="text-danger">This Link is Only Valid for ${ResetExpiry.resetExpireInMinute} Minutes.</strong>
                                                     `,
-                                                            }
-                                                        // Generate Token Store on Old Password DB INcluding User id -> Send Email to User with Link to reset password 
-                                                        Database
-                                                            .executeQuery(
-                                                                OldPasswordTable
-                                                                    .insert(Old_Passwords.InsertColumns,
-                                                                        [
-                                                                            `${UserDetails.UserId}`,
-                                                                            `'${ResetToken}'`,
-                                                                            `'${UserDetails.PASSWORD}'`
-                                                                        ])
-                                                                    .build(),
-                                                                (res => {
-                                                                    if (res.status) {
-                                                                        // Success
-                                                                        // Send Email to User
-                                                                        MailHandel.sendEmail(EmailConfig.subject, EmailConfig.email, EmailConfig.user, EmailConfig.title, EmailConfig.message)
-                                                                        // Success Response
-                                                                        Payload.success = true;
-                                                                        Payload.status = "success";
-                                                                        Payload.result = `Reset Request Successfully, Please Check Your Email ${EmailConfig.email}!`;
-                                                                        statusCode = 200;
-                                                                        statusMessage = "Ok";
-                                                                    } else {
-                                                                        // Error
-                                                                        Payload.success = false;
-                                                                        Payload.status = "error";
-                                                                        Payload.result = "Reset Request Failed, Please Try Again Later.";
-                                                                        statusCode = 500;
-                                                                        statusMessage = "Internal Server Error";
-                                                                    }
-                                                                    // Logging the response
-                                                                    ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
-                                                                    // Sending the response
-                                                                    response.status(statusCode).send(Payload);
-                                                                })
-                                                            )
-                                                    } else {
+                                                                }
+                                                            // Generate Token Store on Old Password DB INcluding User id -> Send Email to User with Link to reset password 
+                                                            Database
+                                                                .executeQuery(
+                                                                    OldPasswordTable
+                                                                        .insert(Old_Passwords.InsertColumns,
+                                                                            [
+                                                                                `${UserDetails.UserId}`,
+                                                                                `'${ResetToken}'`,
+                                                                                `'${UserDetails.PASSWORD}'`
+                                                                            ])
+                                                                        .build(),
+                                                                    (res => {
+                                                                        if (res.status) {
+                                                                            // Success
+                                                                            // Send Email to User
+                                                                            MailHandel.sendEmail(EmailConfig.subject, EmailConfig.email, EmailConfig.user, EmailConfig.title, EmailConfig.message)
+                                                                            // Success Response
+                                                                            Payload.success = true;
+                                                                            Payload.status = "success";
+                                                                            Payload.result = `Reset Request Successfully, Please Check Your Email ${EmailConfig.email}!`;
+                                                                            statusCode = 200;
+                                                                            statusMessage = "Ok";
+                                                                        } else {
+                                                                            // Error
+                                                                            Payload.success = false;
+                                                                            Payload.status = "error";
+                                                                            Payload.result = "Reset Request Failed, Please Try Again Later.";
+                                                                            statusCode = 500;
+                                                                            statusMessage = "Internal Server Error";
+                                                                        }
+                                                                        // Logging the response
+                                                                        ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                                                        // Sending the response
+                                                                        response.status(statusCode).send(Payload);
+                                                                    })
+                                                                )
+                                                        } else {
+                                                            // Error
+                                                            Payload.success = false;
+                                                            Payload.status = "error";
+                                                            Payload.result = `User not found  with ${request.body.email} email.`;
+                                                            statusCode = 400;
+                                                            statusMessage = "Bad Request";
+                                                        }
+                                                    }
+                                                    else {
                                                         // Error
                                                         Payload.success = false;
                                                         Payload.status = "error";
-                                                        Payload.result = `User not found  with ${request.body.email} email.`;
-                                                        statusCode = 400;
-                                                        statusMessage = "Bad Request";
+                                                        Payload.result = "Forgot Request Failed! Please try again later.";
+                                                        statusCode = 500;
+                                                        statusMessage = "Internal Server Error";
+                                                        // Logging the response
+                                                        ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                                        // Sending the response
+                                                        response.status(statusCode).send(Payload);
                                                     }
-                                                }
-                                                else {
-                                                    // Error
-                                                    Payload.success = false;
-                                                    Payload.status = "error";
-                                                    Payload.result = "Forgot Request Failed! Please try again later.";
-                                                    statusCode = 500;
-                                                    statusMessage = "Internal Server Error";
-                                                    // Logging the response
-                                                    ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
-                                                    // Sending the response
-                                                    response.status(statusCode).send(Payload);
-                                                }
-                                            })
-                                        )
+                                                })
+                                            )
                                 } else {
                                     // Unauthorized Request
                                     Payload.success = false;
@@ -457,14 +723,15 @@ UserRouter
         })
 
 UserRouter
-    .post("/view", (request, response) => {
-        // Send List of User Along with Other Information
-        // For Admin To Manage the User
-        response.send({
-            status: "success",
-            message: "Welcome to SniperCode API",
-        });
-    })
+    .post("/view",
+        (request, response) => {
+            // Send List of User Along with Other Information
+            // For Admin To Manage the User
+            response.send({
+                status: "success",
+                message: "Welcome to SniperCode API",
+            });
+        })
     ;
 
 // Exporting UserRouter
