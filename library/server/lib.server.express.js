@@ -469,21 +469,18 @@ class Server {
             .on('SIGINT', (e) => {
                 this.Logger.log(`💻 Received kill signal, shutting down gracefully.\n`);
                 this.activeServer.close();
-                Utils.Database.disconnectDatabase()
                 this.Logger.cli.log(`🔥 Server shutdown complete.`);
                 process.exit();
             })
             .on('SIGTERM', () => {
                 this.Logger.log(`💻 Received kill signal, shutting down gracefully.\n`);
                 this.activeServer.close();
-                Utils.Database.disconnectDatabase()
                 this.Logger.cli.log(`🔥 Server shutdown complete.`);
                 process.exit();
             })
             .on('SIGHUP', () => {
                 this.Logger.log(`💻 Received kill signal, shutting down gracefully.\n`);
                 this.activeServer.close();
-                Utils.Database.disconnectDatabase()
                 this.Logger.cli.log(`🔥 Server shutdown complete.`);
                 process.exit();
             })

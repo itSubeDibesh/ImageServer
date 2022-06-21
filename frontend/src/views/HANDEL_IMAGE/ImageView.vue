@@ -271,56 +271,63 @@ export default {
         },
         onSubmit(e) {
             e.preventDefault();
-            // Captcha Check
-            if (this.captchaVerified == false) {
-                this.showAlert = true;
-                this.alertType = "danger";
-                this.alertMessage = `Captcha Not Verified, Please Check and Try Again.`;
+            if (this.is429) {
+                this.showPreloader = false;
+                this.timeOutHandler.allowAccess = false;
+                this.timeOutHandler.showTimer = true;
+                this.timeOutHandler.timeout = response.data.timeout;
             } else {
-                this.showAlert = false;
-                const formData = new FormData();
-                this.$refs.images.files.forEach(element => {
-                    formData.append('images', element);
-                });
-                formData.append('UserId', this.userLoggedIn.user.UserId);
-                formData.append('captcha', this.captchaToken);
-                // Show Preloader on login button unless response if error hide preloader and show error in alert component
-                this.showPreloader = true;
-                // Make a request to login the user api
-                fetch('/api/image/upload', {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: {
-                        'X-CSRF-TOKEN': this.CSRF,
-                        'Authorization': 'Bearer ' + this.userLoggedIn.token,
-                    },
-                    body: formData
-                })
-                    .then(response => {
-                        this.is429 = response.status === 429;
-                        return response.json();
+                // Captcha Check
+                if (this.captchaVerified == false) {
+                    this.showAlert = true;
+                    this.alertType = "danger";
+                    this.alertMessage = `Captcha Not Verified, Please Check and Try Again.`;
+                } else {
+                    this.showAlert = false;
+                    const formData = new FormData();
+                    this.$refs.images.files.forEach(element => {
+                        formData.append('images', element);
+                    });
+                    formData.append('UserId', this.userLoggedIn.user.UserId);
+                    formData.append('captcha', this.captchaToken);
+                    // Show Preloader on login button unless response if error hide preloader and show error in alert component
+                    this.showPreloader = true;
+                    // Make a request to login the user api
+                    fetch('/api/image/upload', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'X-CSRF-TOKEN': this.CSRF,
+                            'Authorization': 'Bearer ' + this.userLoggedIn.token,
+                        },
+                        body: formData
                     })
-                    .then(response => {
-                        if (this.is429) {
-                            this.showPreloader = false;
-                            this.timeOutHandler.allowAccess = false;
-                            this.timeOutHandler.showTimer = true;
-                            this.timeOutHandler.timeout = response.data.timeout;
-                        } else {
-                            setTimeout(() => {
-                                if (response.success) {
-                                    this.showPreloader = false;
-                                    this.fetchUserImages();
-                                    this.Uploading();
-                                } else {
-                                    this.showPreloader = false;
-                                    this.showAlert = true;
-                                    this.alertType = "danger";
-                                    this.alertMessage = response.message;
-                                }
-                            }, 1e3);
-                        }
-                    })
+                        .then(response => {
+                            this.is429 = response.status === 429;
+                            return response.json();
+                        })
+                        .then(response => {
+                            if (this.is429) {
+                                this.showPreloader = false;
+                                this.timeOutHandler.allowAccess = false;
+                                this.timeOutHandler.showTimer = true;
+                                this.timeOutHandler.timeout = response.data.timeout;
+                            } else {
+                                setTimeout(() => {
+                                    if (response.success) {
+                                        this.showPreloader = false;
+                                        this.fetchUserImages();
+                                        this.Uploading();
+                                    } else {
+                                        this.showPreloader = false;
+                                        this.showAlert = true;
+                                        this.alertType = "danger";
+                                        this.alertMessage = response.message;
+                                    }
+                                }, 1e3);
+                            }
+                        })
+                }
             }
         },
         captchaVerify(token) {

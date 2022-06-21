@@ -35,8 +35,10 @@ class LoginMiddleware {
             } else {
                 // Checking If UserId Is Not Passed On Token
                 if (request.body.UserId == null) {
-                    response.status(StatusCode).send(Payload);
-                    return;
+                    if (request.body.AdminId == null) {
+                        response.status(StatusCode).send(Payload);
+                        return;
+                    }
                 }
                 // If other url check header containing JWT
                 if (request.headers.authorization) {
@@ -53,7 +55,9 @@ class LoginMiddleware {
                         JWT.verify(token, config.jwt.secret, (err, decoded) => {
                             if (err) response.status(StatusCode).send(Payload);
                             // On Identity Check is Successful
-                            if (decoded.UserId == request.body.UserId) next();
+                            if (decoded.UserId == request.body.UserId) next(); else {
+                                if (decoded.UserId = request.body.AdminId) next();
+                            }
                         });
                     } catch (error) {
                         Payload.result = "Token Expired, Please Login Again";

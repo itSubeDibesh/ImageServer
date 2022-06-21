@@ -26,11 +26,11 @@
                 "minutes": 10
             },
             "login": {
-                "requests": 10,
+                "requests": 5,
                 "minutes": 10
             },
             "image": {
-                "requests": 20,
+                "requests": 3,
                 "minutes": 10
             }
         },
@@ -82,7 +82,8 @@
             "/api/auth/verification",
             "/api/auth/login",
             "/api/auth/forgot",
-            "/api/auth/reset"
+            "/api/auth/reset",
+            "/api/image/upload"
         ]
     },
     "jwt": {

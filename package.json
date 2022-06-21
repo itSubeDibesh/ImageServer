@@ -23,8 +23,8 @@
     "dev:backend": "set WORK_ENV=development && npm run open:dev-backend && nodemon --ignore logs/ --ignore tests/ --ignore backend/config/ && index.js",
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
     "build:frontend": "set WORK_ENV=production && cd frontend && npm run build",
-    "serve:backend": "set WORK_ENV=production && npm run open:dev && node index.js",
-    "serve": "set WORK_ENV=production && npm run build:frontend && npm run serve:backend"
+    "prod:backend": "set WORK_ENV=production && npm run open:prod && node index.js",
+    "prod": "set WORK_ENV=production && npm run build:frontend && npm run prod:backend"
   },
   "keywords": [
     "Registration",
