@@ -722,15 +722,127 @@ UserRouter
             }
         })
 
+/** 
+* @swagger
+* /api/user/view:
+*  post:
+*      tags: [User]
+*      summary: Retrieves User List -> Requires Access Token
+*      parameters:
+*          - in: header
+*            name: X-CSRF-TOKEN
+*            schema:
+*              type: string
+*            description: CSRF Token
+*            required: true
+*      security:
+*          - bearerAuth: []
+*      requestBody:
+*          content:
+*              application/json:
+*                  schema:
+*                      type: object
+*                      properties:
+*                          AdminId:
+*                              type: integer
+*                              required: true
+*                              format: number
+*      responses:
+*          200:
+*              description: Success
+*              content: 
+*                  application/json:
+*                      schema:
+*                          type: object
+*                          properties:
+*                              success:
+*                                  type: boolean
+*                                  example: true  
+*                              status:
+*                                  type: string
+*                                  example: success
+*                              result:
+*                                  type: string
+*                                  example: "Ok."
+*          400:
+*              description: Bad Request
+*              content: 
+*                  application/json:
+*                      schema:
+*                          type: object
+*                          properties:
+*                              success:
+*                                  type: boolean
+*                                  example: false  
+*                              status:
+*                                  type: string
+*                                  example: error
+*                              result:
+*                                  type: string
+*                                  example: "UserId not found in the request or might be invalid"
+ */
 UserRouter
     .post("/view",
+        csrfProtection,
+        // Validation Check
+        [
+            check("AdminId").not().isEmpty(),
+            check("AdminId").isNumeric(true)
+        ],
         (request, response) => {
-            // Send List of User Along with Other Information
-            // For Admin To Manage the User
-            response.send({
-                status: "success",
-                message: "Welcome to SniperCode API",
-            });
+            let Payload = {
+                success: false,
+                status: "error",
+                result: "AdminId not found in the request.",
+            },
+                statusCode = 400,
+                statusMessage = "Bad Request";
+            // Error Check from Request
+            if (!validationResult(request).isEmpty()) {
+                Payload.success = false;
+                Payload.status = "error";
+                Payload.result = "AdminId  not found in the request or might be invalid.";
+                statusCode = 400;
+                statusMessage = "Bad Request";
+                // Logging the response
+                ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                // Sending the response
+                response.status(statusCode).send(Payload);
+            } else {
+                // Fetch user Except Admin
+                Database
+                    .executeQuery(
+                        UserTable
+                            .select(QueryBuilder.selectType.COLUMN, User.SelectColumns)
+                            .where(`UserId != ${request.body.AdminId}`)
+                            .build(),
+                        (resp => {
+                            if (resp.status) {
+                                // Success
+                                Payload.success = true;
+                                Payload.status = "success";
+                                Payload.result = resp.result;
+                                statusCode = 200;
+                                statusMessage = "Ok";
+                                Payload.data = {
+                                    users: resp.rows,
+                                    length: resp.rows.length
+                                }
+                            } else {
+                                // Error
+                                Payload.success = false;
+                                Payload.status = "error";
+                                Payload.result = "Users not found.";
+                                statusCode = 400;
+                                statusMessage = "Bad Request";
+                            }
+                            // Logging the response
+                            ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                            // Sending the response
+                            response.status(statusCode).send(Payload);
+                        })
+                    )
+            }
         })
     ;
 
