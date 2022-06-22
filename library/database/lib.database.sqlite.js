@@ -598,7 +598,7 @@ class Database extends QueryBuilder {
         else
             this.database
                 .run(SQLQuery, (err) => {
-                    if (err) {
+                    if (err != null) {
                         this.Logger.log(`🐞 ${err.code} ${err} ${err.stack}\n`);
                         callback({
                             error: err,

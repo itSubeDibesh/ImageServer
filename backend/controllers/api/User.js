@@ -13,14 +13,16 @@ const
         ResponseLogger, csrfProtection,
         setRequestLimiter, DevelopmentEnv, MailHandel,
         ServerConfig, RandomString, getDatabase,
-        timeExceeded, monthToMs, minToMs,
-        QueryBuilder, JWT } = require("../../../library/server/lib.utility.express"),
+        minToMs, FileLogger, QueryBuilder, JWT
+    } = require("../../../library/server/lib.utility.express"),
     // Extracting Packages
     Database = getDatabase(),
+    FileSystem = FileLogger.FileSystem,
     // Extracting ExpressValidator from util
     { check, validationResult } = ExpressValidator,
     UserTable = new QueryBuilder().currentTable("users"),
     OldPasswordTable = new QueryBuilder().currentTable("old_passwords"),
+    ImageTable = new QueryBuilder().currentTable("image"),
     // Extracting Expires
     RegisterRequestLimit = ServerConfig.server.limit.register,
     ResetExpiry = ServerConfig.server.expiry.password,
@@ -30,6 +32,7 @@ const
         SelectColumns: ["UserId", "UserName", "FullName", "Email", "UserGroup", "IsDisabled", "IsLoggedIn", "VerificationStatus", "LastPasswordResetDate", "CreatedAt", "UpdatedAt"],
         UpdateFullName: ["FullName"],
         SelectResetColumns: ["UserId", "UserName", "Email", "PASSWORD"],
+        Block: ["IsDisabled"]
     },
     Old_Passwords = {
         InsertColumns: ["UserId", "ResetToken", "HashedPassword"],
@@ -452,24 +455,623 @@ UserRouter
                     )
             }
         })
-
+/**
+ * @swagger
+ * /api/user/delete:
+ *  post:
+ *      tags: [User]
+ *      summary: Delete User -> Requires Access Token
+ *      parameters:
+ *          - in: header
+ *            name: X-CSRF-TOKEN
+ *            schema:
+ *              type: string
+ *            description: CSRF Token
+ *            required: true
+ *      security:
+ *          - bearerAuth: []
+ *      requestBody:
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      properties:
+ *                          AdminId:
+ *                              type: number
+ *                              required: true
+ *                          UserId:
+ *                              type: number
+ *                              required: true
+ *      responses:
+ *          200:
+ *              description: Success
+ *              content: 
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              success:
+ *                                  type: boolean
+ *                                  example: true  
+ *                              status:
+ *                                  type: string
+ *                                  example: success
+ *                              result:
+ *                                  type: string
+ *                                  example: "User updated successfully"
+ *          400:
+ *              description: Bad Request
+ *              content: 
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              success:
+ *                                  type: boolean
+ *                                  example: false  
+ *                              status:
+ *                                  type: string
+ *                                  example: error
+ *                              result:
+ *                                  type: string
+ *                                  example: "Username, Password, Email or Fullname not found in the request or might be invalid."
+ *          500:
+ *              description: Internal Server Error
+ *              content: 
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              success:
+ *                                  type: boolean
+ *                                  example: false  
+ *                              status:
+ *                                  type: string
+ *                                  example: error
+ *                              result:
+ *                                  type: string
+ *                                  example: "User Registration Failed, Please Try Again Later."
+ */
 UserRouter
-    .post("/delete", (request, response) => {
-        // Send a reset request to delete user and its files
-        response.send({
-            status: "success",
-            message: "Welcome to SniperCode API",
-        });
-    })
-
+    .post("/delete",
+        csrfProtection,
+        // Validation Check
+        [
+            check("AdminId").not().isEmpty(),
+            check("AdminId").isNumeric(true),
+            check("UserId").not().isEmpty(),
+            check("UserId").isNumeric(true)
+        ],
+        (request, response) => {
+            let Payload = {
+                success: false,
+                status: "error",
+                result: "AdminId not found in the request.",
+            },
+                statusCode = 400,
+                statusMessage = "Bad Request";
+            // Error Check from Request
+            if (!validationResult(request).isEmpty()) {
+                Payload.success = false;
+                Payload.status = "error";
+                Payload.result = "AdminId  not found in the request or might be invalid.";
+                statusCode = 400;
+                statusMessage = "Bad Request";
+                // Logging the response
+                ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                // Sending the response
+                response.status(statusCode).send(Payload);
+            } else {
+                Database
+                    .executeQuery(
+                        UserTable
+                            .select(QueryBuilder.selectType.ALL)
+                            .where(`UserId = ${request.body.AdminId}`)
+                            .build(),
+                        (respAdmin => {
+                            if (respAdmin.status) {
+                                const { UserGroup, UserId } = respAdmin.rows[0];
+                                if (UserGroup == userRoles.Admin) {
+                                    if (UserId == request.body.User) {
+                                        Payload.success = false;
+                                        Payload.status = "error";
+                                        Payload.result = "Admin can't delete self.";
+                                        statusCode = 400;
+                                        statusMessage = "Bad Request";
+                                        // Logging the response
+                                        ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                        // Sending the response
+                                        response.status(statusCode).send(Payload);
+                                    } else {
+                                        // User Existence Check
+                                        Database
+                                            .executeQuery(
+                                                UserTable
+                                                    .select(QueryBuilder.selectType.ALL)
+                                                    .where(`UserId = ${request.body.UserId}`)
+                                                    .build(),
+                                                (userRef => {
+                                                    if (userRef.status && userRef.rows.length != 0) {
+                                                        // Delete User
+                                                        Database
+                                                            .executeQuery(
+                                                                UserTable
+                                                                    .delete()
+                                                                    .where(`UserId = ${request.body.UserId}`)
+                                                                    .build(),
+                                                                (res => {
+                                                                    if (res.status) {
+                                                                        // Delete All The Images of Respective User
+                                                                        Database
+                                                                            .executeQuery(
+                                                                                ImageTable
+                                                                                    .delete()
+                                                                                    .where(`UserId = ${request.body.UserId}`)
+                                                                                    .build(),
+                                                                                (imgDel => {
+                                                                                    if (imgDel.status) {
+                                                                                        // Delete Image Files
+                                                                                        const
+                                                                                            imageDir = `${ServerConfig.image.storagePath}/IMAGE_${request.body['UserId']}/`;
+                                                                                        if (FileSystem.dir_exists(imageDir)) FileSystem.delete_dir(imageDir, true, true);
+                                                                                        Payload.success = true;
+                                                                                        Payload.status = "success";
+                                                                                        Payload.result = "User deleted successfully.";
+                                                                                        statusCode = 200;
+                                                                                        statusMessage = "ok";
+                                                                                    } else {
+                                                                                        Payload.success = false;
+                                                                                        Payload.status = "error";
+                                                                                        Payload.result = "Unable to delete user.";
+                                                                                        statusCode = 500;
+                                                                                        statusMessage = "Internal Server Error";
+                                                                                    }
+                                                                                    // Logging the response
+                                                                                    ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                                                                    // Sending the response
+                                                                                    response.status(statusCode).send(Payload);
+                                                                                }))
+                                                                    } else {
+                                                                        Payload.success = false;
+                                                                        Payload.status = "error";
+                                                                        Payload.result = "Unable to delete user.";
+                                                                        statusCode = 500;
+                                                                        statusMessage = "Internal Server Error";
+                                                                        // Logging the response
+                                                                        ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                                                        // Sending the response
+                                                                        response.status(statusCode).send(Payload);
+                                                                    }
+                                                                })
+                                                            )
+                                                    } else {
+                                                        // Not Found
+                                                        Payload.success = false;
+                                                        Payload.status = "error";
+                                                        Payload.result = "User Not found";
+                                                        statusCode = 404;
+                                                        statusMessage = "Not Found";
+                                                        // Logging the response
+                                                        ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                                        // Sending the response
+                                                        response.status(statusCode).send(Payload);
+                                                    }
+                                                })
+                                            )
+                                    }
+                                } else {
+                                    // Unauthorized Request
+                                    Payload.success = false;
+                                    Payload.status = "error";
+                                    Payload.result = "You are not authorized to perform this action.";
+                                    statusCode = 401;
+                                    statusMessage = "Unauthorized";
+                                    // Logging the response
+                                    ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                    // Sending the response
+                                    response.status(statusCode).send(Payload);
+                                }
+                            } else {
+                                Payload.success = false;
+                                Payload.status = "error";
+                                Payload.result = "Unauthorized Request, Admin Id is required;"
+                                statusCode = 400;
+                                statusMessage = "Bad Request"
+                                // Logging the response
+                                ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                // Sending the response
+                                response.status(statusCode).send(Payload);
+                            }
+                        }
+                        ))
+            }
+        })
+/**
+ * @swagger
+ * /api/user/disable:
+ *  post:
+ *      tags: [User]
+ *      summary: Disables User -> Requires Access Token
+ *      parameters:
+ *          - in: header
+ *            name: X-CSRF-TOKEN
+ *            schema:
+ *              type: string
+ *            description: CSRF Token
+ *            required: true
+ *      security:
+ *          - bearerAuth: []
+ *      requestBody:
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      properties:
+ *                          AdminId:
+ *                              type: number
+ *                              required: true
+ *                          UserId:
+ *                              type: number
+ *                              required: true
+ *      responses:
+ *          200:
+ *              description: Success
+ *              content: 
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              success:
+ *                                  type: boolean
+ *                                  example: true  
+ *                              status:
+ *                                  type: string
+ *                                  example: success
+ *                              result:
+ *                                  type: string
+ *                                  example: "User updated successfully"
+ *          400:
+ *              description: Bad Request
+ *              content: 
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              success:
+ *                                  type: boolean
+ *                                  example: false  
+ *                              status:
+ *                                  type: string
+ *                                  example: error
+ *                              result:
+ *                                  type: string
+ *                                  example: "Username, Password, Email or Fullname not found in the request or might be invalid."
+ *          500:
+ *              description: Internal Server Error
+ *              content: 
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              success:
+ *                                  type: boolean
+ *                                  example: false  
+ *                              status:
+ *                                  type: string
+ *                                  example: error
+ *                              result:
+ *                                  type: string
+ *                                  example: "User Registration Failed, Please Try Again Later."
+ */
 UserRouter
-    .post("/disable", (request, response) => {
-        // Send a reset request to disable user from access
-        response.send({
-            status: "success",
-            message: "Welcome to SniperCode API",
-        });
-    })
+    .post("/disable",
+        csrfProtection,
+        // Validation Check
+        [
+            check("AdminId").not().isEmpty(),
+            check("AdminId").isNumeric(true),
+            check("UserId").not().isEmpty(),
+            check("UserId").isNumeric(true)
+        ],
+        (request, response) => {
+            let Payload = {
+                success: false,
+                status: "error",
+                result: "AdminId or UserId not found in the request.",
+            },
+                statusCode = 400,
+                statusMessage = "Bad Request";
+            // Error Check from Request
+            if (!validationResult(request).isEmpty()) {
+                Payload.success = false;
+                Payload.status = "error";
+                Payload.result = "AdminId or UserId not found in the request or might be invalid.";
+                statusCode = 400;
+                statusMessage = "Bad Request";
+                // Logging the response
+                ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                // Sending the response
+                response.status(statusCode).send(Payload);
+            } else {
+                Database
+                    .executeQuery(
+                        UserTable
+                            .select(QueryBuilder.selectType.ALL)
+                            .where(`UserId = ${request.body.AdminId}`)
+                            .build(),
+                        (respAdmin => {
+                            if (respAdmin.status) {
+                                const { UserGroup } = respAdmin.rows[0];
+                                if (UserGroup == userRoles.Admin) {
+                                    Database
+                                        .executeQuery(
+                                            UserTable
+                                                .select(QueryBuilder.selectType.ALL)
+                                                .where(`UserId = ${request.body.UserId}`)
+                                                .build(),
+                                            (userRef => {
+                                                if (userRef.status && userRef.rows.length != 0) {
+                                                    Database
+                                                        .executeQuery(
+                                                            UserTable
+                                                                .update(User.Block, ['1'])
+                                                                .where(`UserId = ${request.body.UserId}`)
+                                                                .build(),
+                                                            (res => {
+                                                                if (res.status) {
+                                                                    Payload.success = true;
+                                                                    Payload.status = "success";
+                                                                    Payload.result = "User Updated Successfully.";
+                                                                    statusCode = 200;
+                                                                    statusMessage = "ok";
+                                                                    // Logging the response
+                                                                    ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                                                    // Sending the response
+                                                                    response.status(statusCode).send(Payload);
+                                                                } else {
+                                                                    Payload.success = false;
+                                                                    Payload.status = "error";
+                                                                    Payload.result = "Unable to update user.";
+                                                                    statusCode = 500;
+                                                                    statusMessage = "Internal Server Error";
+                                                                    // Logging the response
+                                                                    ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                                                    // Sending the response
+                                                                    response.status(statusCode).send(Payload);
+                                                                }
+                                                            })
+                                                        )
+                                                } else {
+                                                    // Not Found
+                                                    Payload.success = false;
+                                                    Payload.status = "error";
+                                                    Payload.result = "User Not found";
+                                                    statusCode = 404;
+                                                    statusMessage = "Not Found";
+                                                    // Logging the response
+                                                    ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                                    // Sending the response
+                                                    response.status(statusCode).send(Payload);
+                                                }
+                                            }))
+                                } else {
+                                    // Unauthorized Request
+                                    Payload.success = false;
+                                    Payload.status = "error";
+                                    Payload.result = "You are not authorized to perform this action.";
+                                    statusCode = 401;
+                                    statusMessage = "Unauthorized";
+                                    // Logging the response
+                                    ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                    // Sending the response
+                                    response.status(statusCode).send(Payload);
+                                }
+                            } else {
+                                Payload.success = false;
+                                Payload.status = "error";
+                                Payload.result = "Unauthorized Request, Admin Id is required;"
+                                statusCode = 400;
+                                statusMessage = "Bad Request"
+                                // Logging the response
+                                ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                // Sending the response
+                                response.status(statusCode).send(Payload);
+                            }
+                        }
+                        ))
+            }
+        })
+/**
+ * @swagger
+ * /api/user/enable:
+ *  post:
+ *      tags: [User]
+ *      summary: Enables User -> Requires Access Token
+ *      parameters:
+ *          - in: header
+ *            name: X-CSRF-TOKEN
+ *            schema:
+ *              type: string
+ *            description: CSRF Token
+ *            required: true
+ *      security:
+ *          - bearerAuth: []
+ *      requestBody:
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      properties:
+ *                          AdminId:
+ *                              type: number
+ *                              required: true
+ *                          UserId:
+ *                              type: number
+ *                              required: true
+ *      responses:
+ *          200:
+ *              description: Success
+ *              content: 
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              success:
+ *                                  type: boolean
+ *                                  example: true  
+ *                              status:
+ *                                  type: string
+ *                                  example: success
+ *                              result:
+ *                                  type: string
+ *                                  example: "User updated successfully"
+ *          400:
+ *              description: Bad Request
+ *              content: 
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              success:
+ *                                  type: boolean
+ *                                  example: false  
+ *                              status:
+ *                                  type: string
+ *                                  example: error
+ *                              result:
+ *                                  type: string
+ *                                  example: "Username, Password, Email or Fullname not found in the request or might be invalid."
+ *          500:
+ *              description: Internal Server Error
+ *              content: 
+ *                  application/json:
+ *                      schema:
+ *                          type: object
+ *                          properties:
+ *                              success:
+ *                                  type: boolean
+ *                                  example: false  
+ *                              status:
+ *                                  type: string
+ *                                  example: error
+ *                              result:
+ *                                  type: string
+ *                                  example: "User Registration Failed, Please Try Again Later."
+ */
+UserRouter
+    .post("/enable",
+        csrfProtection,
+        // Validation Check
+        [
+            check("AdminId").not().isEmpty(),
+            check("AdminId").isNumeric(true),
+            check("UserId").not().isEmpty(),
+            check("UserId").isNumeric(true)
+        ],
+        (request, response) => {
+            let Payload = {
+                success: false,
+                status: "error",
+                result: "AdminId or UserId not found in the request.",
+            },
+                statusCode = 400,
+                statusMessage = "Bad Request";
+            // Error Check from Request
+            if (!validationResult(request).isEmpty()) {
+                Payload.success = false;
+                Payload.status = "error";
+                Payload.result = "AdminId or UserId not found in the request or might be invalid.";
+                statusCode = 400;
+                statusMessage = "Bad Request";
+                // Logging the response
+                ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                // Sending the response
+                response.status(statusCode).send(Payload);
+            } else {
+                Database
+                    .executeQuery(
+                        UserTable
+                            .select(QueryBuilder.selectType.ALL)
+                            .where(`UserId = ${request.body.AdminId}`)
+                            .build(),
+                        (respAdmin => {
+                            if (respAdmin.status) {
+                                const { UserGroup, UserId } = respAdmin.rows[0];
+                                if (UserGroup == userRoles.Admin) {
+                                    Database
+                                        .executeQuery(
+                                            UserTable
+                                                .select(QueryBuilder.selectType.ALL)
+                                                .where(`UserId = ${request.body.UserId}`)
+                                                .build(),
+                                            (userRef => {
+                                                if (userRef.status && userRef.rows.length != 0) {
+                                                    Database
+                                                        .executeQuery(
+                                                            UserTable
+                                                                .update(User.Block, ['0'])
+                                                                .where(`UserId = ${request.body.UserId}`)
+                                                                .build(),
+                                                            (res => {
+                                                                if (res.status) {
+                                                                    Payload.success = true;
+                                                                    Payload.status = "success";
+                                                                    Payload.result = "User Updated Successfully.";
+                                                                    statusCode = 200;
+                                                                    statusMessage = "ok";
+                                                                } else {
+                                                                    Payload.success = false;
+                                                                    Payload.status = "error";
+                                                                    Payload.result = "Unable to update user.";
+                                                                    statusCode = 500;
+                                                                    statusMessage = "Internal Server Error";
+                                                                }
+                                                                // Logging the response
+                                                                ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                                                // Sending the response
+                                                                response.status(statusCode).send(Payload);
+                                                            })
+                                                        )
+                                                } else {
+                                                    // Not Found
+                                                    Payload.success = false;
+                                                    Payload.status = "error";
+                                                    Payload.result = "User Not found";
+                                                    statusCode = 404;
+                                                    statusMessage = "Not Found";
+                                                    // Logging the response
+                                                    ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                                    // Sending the response
+                                                    response.status(statusCode).send(Payload);
+                                                }
+                                            }))
+                                } else {
+                                    // Unauthorized Request
+                                    Payload.success = false;
+                                    Payload.status = "error";
+                                    Payload.result = "You are not authorized to perform this action.";
+                                    statusCode = 401;
+                                    statusMessage = "Unauthorized";
+                                    // Logging the response
+                                    ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                    // Sending the response
+                                    response.status(statusCode).send(Payload);
+                                }
+                            } else {
+                                Payload.success = false;
+                                Payload.status = "error";
+                                Payload.result = "Unauthorized Request, Admin Id is required;"
+                                statusCode = 400;
+                                statusMessage = "Bad Request"
+                                // Logging the response
+                                ResponseLogger.log(`📶  [${statusCode} ${statusMessage}] with PAYLOAD [${JSON.stringify(Payload)}]`);
+                                // Sending the response
+                                response.status(statusCode).send(Payload);
+                            }
+                        }
+                        ))
+            }
+        })
 
 /** 
 * @swagger
@@ -611,7 +1213,7 @@ UserRouter
                                     if (UserId == request.body.AdminId) {
                                         Payload.success = false;
                                         Payload.status = "error";
-                                        Payload.result = "Admin can't send reset request.";
+                                        Payload.result = "Admin can't send enable own account.";
                                         statusCode = 400;
                                         statusMessage = "Bad Request";
                                         // Logging the response
