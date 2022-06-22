@@ -156,13 +156,14 @@ export default {
         if (this.userLoggedIn.loggedIn && this.userLoggedIn.token != null) {
           if (this.userLoggedIn.user.UserGroup != 'ADMINISTRATOR') {
             this.$router.push('/images');
-          } else {
+          }
+          if (this.userLoggedIn.user.UserGroup === 'ADMINISTRATOR') {
             this.$router.push('/dashboard');
           }
         }
       }
       // Post logged in routes are not accessible from pre logged in user
-      if (this.postLoginRoutes.includes(to.path)) {
+      if (this.postLoginRoutes.includes(to.path) || this.administratorRoutes.includes(to.path)) {
         // User Not Logged In  -> Don't Allow Post Loggedin Access 
         if (!this.userLoggedIn.loggedIn || this.userLoggedIn.token == null) {
           this.$router.push('/login');
