@@ -62,10 +62,6 @@ var
          * @description Importing SQLInjection Middleware
          */
         SQLInjection: require('./middleware/lib.injection.filter.sql').filter,
-        /** 
-         * @description Importing AccessControl Middleware
-         */
-        AccessControl: require('./middleware/lib.access.control').control,
         /**
          * @description Importing ReCaptcha Middleware
          */
@@ -176,7 +172,6 @@ class Server {
         this.PORT = process.env.PORT || Config.server.PORT || 8080;
         this.isHttp = Config.server.isHttp;
         this.preventSqlInjection = Config.server.preventions.sqLInjection;
-        this.enableAccessControl = Config.server.preventions.enableAccessControl;
         this.enableReCaptcha = Config.server.preventions.enableReCaptcha;
         this.preventLogoutSessionHijack = Config.server.preventions.logoutSessionHijack;
         this.setRequestLimit = false;
@@ -306,8 +301,6 @@ class Server {
         this.server.use(LoggedIn())
         // Preventing Sql Injection Attacks
         if (this.preventSqlInjection) this.server.use(SQLInjection());
-        // Enabling Access Control
-        if (this.enableAccessControl) this.server.use(AccessControl());
         // Enabling ReCaptcha
         if (this.enableReCaptcha) this.server.use(await ReCaptcha());
         // Setting Request Limit
