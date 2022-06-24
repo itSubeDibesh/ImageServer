@@ -1208,12 +1208,12 @@ UserRouter
                             .build(),
                         (respAdmin => {
                             if (respAdmin.status) {
-                                const { UserGroup, UserId } = respAdmin.rows[0];
+                                const { UserGroup, Email } = respAdmin.rows[0];
                                 if (UserGroup == userRoles.Admin) {
-                                    if (UserId == request.body.AdminId) {
+                                    if (Email == request.body.Email) {
                                         Payload.success = false;
                                         Payload.status = "error";
-                                        Payload.result = "Admin can't send enable own account.";
+                                        Payload.result = "Admin can't send email own account.";
                                         statusCode = 400;
                                         statusMessage = "Bad Request";
                                         // Logging the response

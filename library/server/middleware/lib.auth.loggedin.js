@@ -56,7 +56,11 @@ class LoginMiddleware {
                             if (err) response.status(StatusCode).send(Payload);
                             // On Identity Check is Successful
                             if (decoded.UserId == request.body.UserId) next(); else {
-                                if (decoded.UserId = request.body.AdminId) next();
+                                if (decoded.UserId == request.body.AdminId) next();
+                                else {
+                                    Payload.result = "Unauthorized Access, Request Denied.";
+                                    response.status(StatusCode).send(Payload);
+                                }
                             }
                         });
                     } catch (error) {

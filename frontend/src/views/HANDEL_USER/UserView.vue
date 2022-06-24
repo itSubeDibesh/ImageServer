@@ -77,7 +77,7 @@
                             </div>
                             <div class="col-6 text-end">
                                 <span class="badge bg-danger" style="cursor:pointer;" data-bs-placement="top"
-                                    v-on:click="toggleProfile()" title="Exit"><i class="fas fa-x fa-2x"></i>
+                                    v-on:click="profile.showProfile = false" title="Exit"><i class="fas fa-x fa-2x"></i>
                                 </span>
                             </div>
                         </div>
@@ -142,45 +142,51 @@
                                         removeTime(currentUser.LastPasswordResetDate)
                                 }}</span>
                             </div>
-                            <div v-if="showStorageInfo">
-                                <hr />
-                                <div style="cursor:default" class="col-sm-12 col-md-12 col-lg-12 mb-3 ml-1 text-center">
-                                    <h4> <strong> <i class="fas fa-floppy-disk"></i>
-                                            Storage Information</strong>
-                                    </h4>
-                                </div>
-                                <div style="cursor:default" class="col-sm-12 col-md-6 col-lg-6 mb-3 ml-1">
-                                    <strong> <i class="fas fa-images text-primary"></i> Total Files:
-                                    </strong>
-                                    <span class="badge rounded-pill bg-success">{{ currentUser.images }}
-                                        files</span>
-                                </div>
-                                <div style="cursor:default" class="col-sm-12 col-md-6 col-lg-6 mb-3 ml-1">
-                                    <strong> <i class="fas fa-floppy-disk text-primary"></i> Total Storage
-                                    </strong>
-                                    <span class="badge rounded-pill bg-danger">{{
-                                            getStorage(currentUser.totalStorage)
-                                    }}</span>
-                                </div>
-                                <button class="btn btn-success" v-on:click="fetchUserImages(currentUser.UserId)"><i
-                                        class="fas fa-images"></i> Show
-                                    Images</button>
+                            <div style="cursor:default" class="col-sm-12 col-md-6 col-lg-6 mb-3 ml-1">
+                                <strong> <i class="fas fa-user-shield text-primary"></i> Disabled:
+                                </strong>
+                                <span class="badge rounded-pill bg-success">{{
+                                        currentUser.IsDisabled ? "True" : "False"
+                                }}</span>
+                            </div>
+                            <button class="btn btn-success" v-on:click="profile.showDisable = true">
+                                <i class="fas fa-hands-helping"></i> User Support</button>
+                        </div>
+                        <div v-if="showStorageInfo">
+                            <hr />
+                            <div style="cursor:default" class="col-sm-12 col-md-12 col-lg-12 mb-3 ml-1 text-center">
+                                <h4> <strong> <i class="fas fa-floppy-disk"></i>
+                                        Storage Information</strong>
+                                </h4>
+                            </div>
+                            <div style="cursor:default" class="col-sm-12 col-md-6 col-lg-6 mb-3 ml-1">
+                                <strong> <i class="fas fa-images text-primary"></i> Total Files:
+                                </strong>
+                                <span class="badge rounded-pill bg-success">{{ currentUser.images }}
+                                    files</span>
+                            </div>
+                            <div style="cursor:default" class="col-sm-12 col-md-6 col-lg-6 mb-3 ml-1">
+                                <strong> <i class="fas fa-floppy-disk text-primary"></i> Total Storage
+                                </strong>
+                                <span class="badge rounded-pill bg-danger">{{
+                                        getStorage(currentUser.totalStorage)
+                                }}</span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-sm-12 col-md-4 mb-3" v-if="profile.showImage">
-                <div class="card text-center overflow-auto mb-3" style=" max-height: 26em;"
+            <div class="col-sm-12 col-md-4 mb-3" v-if="profile.showDisable">
+                <div class="card text-center overflow-auto mb-3"
                     :class="{ 'text-light bg-dark border-light': isDarkMode, 'text-dark bg-light border-dark': !isDarkMode }">
                     <div class="card-title m-2 text-start p-2">
                         <div class="row">
                             <div class="col-6">
-                                <h4>Images</h4>
+                                <h4>User Support</h4>
                             </div>
                             <div class="col-6 text-end">
                                 <span class="badge bg-danger" style="cursor:pointer;" data-bs-placement="top"
-                                    v-on:click="toggleImages()" title="Exit"><i class="fas fa-x fa-2x"></i>
+                                    v-on:click="profile.showDisable = false" title="Exit"><i class="fas fa-x fa-2x"></i>
                                 </span>
                             </div>
                         </div>
@@ -188,24 +194,41 @@
                     <div class="card-body">
                         <div class="mb-3 col-12 text-center">
                             <div class="row">
-                                <div class="col-sm-12 mt-1 mb-3 mr-1" v-for="(img, imageIndex) in userImages"
-                                    :id="'IMAGE_' + img.ImageId" :ref="'IMAGE_' + img.ImageId" :key="imageIndex">
+                                <div class="col-sm-12 mt-1 mb-3 mr-1">
                                     <div class="card">
-                                        <div class="card-title">
-                                            <div class="row px-3 py-3 pt-2 pb-1 text-dark">
-                                                <div class="col-sm-6  text-start">
-                                                    <i class="fas fa-calendar text-success"></i>
-                                                    <strong>&nbsp;{{ removeTime(img.UploadDate) }}</strong>
+                                        <h5 class="card-title m-2 p-2">Enable/ Disable Account</h5>
+                                        <div class="card-body">
+                                            <form class="row" v-on:submit="disableSubmit">
+                                                <div class="col-12 mb-2">
+                                                    <strong>User Disabled: </strong>
+                                                    <span class="badge rounded-pill bg-success">{{
+                                                            currentUser.IsDisabled ? "True" : "False"
+                                                    }}</span>
                                                 </div>
-                                            </div>
+
+                                                <div class="col-12 mb-2">
+                                                    <div class="form-check form-switch form-check-inline">
+                                                        <input class="form-check-input"
+                                                            :checked="currentUser.IsDisabled" type="checkbox"
+                                                            ref="checked" id="enabled">
+                                                        <label class="form-check-label" for="enabled">Set
+                                                            Disabled</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <button type="submit" class="btn btn-primary mb-3">Update
+                                                        Account</button>
+                                                </div>
+                                            </form>
                                         </div>
-                                        <div class="card-body"
-                                            :class="{ 'text-light bg-dark border-light': isDarkMode, 'text-dark bg-light border-dark': !isDarkMode }">
-                                            <PreLoader v-if="showImageLoader" :keepLoading="true" />
-                                            <a :href="img.FilePath" v-else
-                                                data-lightbox="{{'Image'+removeTime(img.UploadDate)}}">
-                                                <img :src="img.FilePath" class="img img-fluid" :alt="img.FileName">
-                                            </a>
+                                    </div>
+                                </div>
+                                <div class="col-sm-12 mt-1 mb-3 mr-1">
+                                    <div class="card">
+                                        <h5 class="card-title m-2 p-2">Reset Request</h5>
+                                        <div class="card-body">
+                                            <a href="#" v-on:click="sendResetRequest" class="btn btn-primary">Send
+                                                Request <i class="fa-solid fa-paper-plane"></i></a>
                                         </div>
                                     </div>
                                 </div>
@@ -246,14 +269,13 @@ export default {
             },
             profile: {
                 showProfile: false,
-                showImage: false
+                showDisable: false
             },
             userList: [],
             tmpBuffer: [],
-            userImages: [],
             currentUser: {},
             showProfileLoader: true,
-            showImageLoader: true,
+            showDisableLoader: true,
             showStorageInfo: false,
         }
     },
@@ -266,6 +288,106 @@ export default {
             if (str.length != 0)
                 return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
         },
+        disableSubmit(e) {
+            e.preventDefault();
+            const checked = this.$refs['checked'].checked;
+            this.fetchCsrf()
+                .then(CSRF => {
+                    if (checked) {
+                        // Send Disable request
+                        fetch('/api/user/disable', {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': CSRF,
+                                'Authorization': 'Bearer ' + this.userLoggedIn.token,
+                            },
+                            body: JSON.stringify({
+                                AdminId: this.userLoggedIn.user.UserId,
+                                UserId: this.currentUser.UserId
+                            })
+                        })
+                            .then(resp => resp.json())
+                            .then(resp => {
+                                if (resp.success) {
+                                    this.currentUser = {}
+                                    this.profile.showDisable = false;
+                                    this.profile.showProfile = false;
+                                    this.fetchUserList()
+                                }
+                                this.$store.commit("setAlert", {
+                                    type: resp.status == "error" ? 'danger' : 'success',
+                                    message: resp.result,
+                                    showAlert: true
+                                })
+                            })
+
+                    } else {
+                        fetch('/api/user/enable', {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': CSRF,
+                                'Authorization': 'Bearer ' + this.userLoggedIn.token,
+                            },
+                            body: JSON.stringify({
+                                AdminId: this.userLoggedIn.user.UserId,
+                                UserId: this.currentUser.UserId
+                            })
+                        })
+                            .then(resp => resp.json())
+                            .then(resp => {
+                                if (resp.success) {
+                                    this.currentUser = {}
+                                    this.profile.showDisable = false;
+                                    this.profile.showProfile = false;
+                                    this.fetchUserList()
+                                }
+                                this.$store.commit("setAlert", {
+                                    type: resp.status == "error" ? 'danger' : 'success',
+                                    message: resp.result,
+                                    showAlert: true
+                                })
+                            })
+                    }
+                })
+            console.log(checked)
+        },
+        sendResetRequest(e) {
+            e.preventDefault();
+            this.fetchCsrf()
+                .then(CSRF => {
+                    const Payload = {
+                        Email: this.currentUser.Email,
+                        AdminId: this.userLoggedIn.user.UserId
+                    }
+                    // Show Preloader on forgot button unless response if error hide preloader and show error in alert component
+                    this.showPreloader = true;
+                    // Make a request to forgot the user api
+                    fetch('/api/user/reset_request', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': CSRF,
+                            'Authorization': 'Bearer ' + this.userLoggedIn.token,
+                        },
+                        body: JSON.stringify(Payload)
+                    })
+                        .then(response => response.json())
+                        .then(json => {
+                            setTimeout(() => {
+                                this.$store.commit("setAlert", {
+                                    type: json.status == "error" ? 'danger' : 'success',
+                                    message: json.result,
+                                    showAlert: true
+                                })
+                            }, 1e3);
+                        });
+                })
+        },
         fetchCsrf() {
             return fetch('/api/auth/csrf', {
                 method: 'GET',
@@ -275,12 +397,6 @@ export default {
                     return response.json();
                 }
             }).then(json => json.result.CsrfToken)
-        },
-        toggleProfile() {
-            this.profile.showProfile = !this.profile.showProfile
-        },
-        toggleImages() {
-            this.profile.showImage = !this.profile.showImage
         },
         searchText(e) {
             e.preventDefault();
@@ -323,7 +439,7 @@ export default {
                 this.fetchCsrf()
             ])
                 .then(([
-                    CSRF_1,
+                    CSRF_1
                 ]) => {
                     fetch('/api/user/view', {
                         method: 'POST',
@@ -350,43 +466,6 @@ export default {
                                 })
                             }
                         })
-                })
-        },
-        fetchUserImages(userId) {
-            console.log(userId)
-            this.profile.showImage = true;
-            this.fetchCsrf()
-                .then(csrfToken => {
-                    fetch("/api/image/view", {
-                        method: 'POST',
-                        credentials: 'same-origin',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': csrfToken,
-                            'Authorization': 'Bearer ' + this.userLoggedIn.token,
-                        },
-                        body: JSON.stringify({ UserId: userId })
-                    })
-                        .then(response => response.json())
-                        .then(result => {
-                            console.log(result)
-                            if (result.success) {
-                                if (result.data.length != 0) {
-                                    // Show Preloader For Specific Images
-                                    this.userImages = result.data.images;
-                                    this.showImageLoader = false;
-                                }
-                            } else {
-                                this.userImages = []
-                            }
-                        })
-                        .catch(error => {
-                            this.$store.commit("setAlert", {
-                                type: 'danger',
-                                message: error.message,
-                                showAlert: true
-                            })
-                        });
                 })
         },
         deleteUser(id) {
@@ -468,6 +547,9 @@ export default {
         },
         reset() {
             this.userList = []
+            this.currentUser = {}
+            this.profile.showDisable = false
+            this.profile.showProfile = false
             this.$store.commit('setUserList', [])
         }
     },
