@@ -1561,14 +1561,7 @@ UserRouter
                                 if (UserGroup == userRoles.Admin) {
                                     Database
                                         .executeQuery(
-                                            `SELECT 
-                                                count(*) AS 'TotalUsers',
-                                                sum(case when UserGroup = '${userRoles.Admin}' then 1 else 0 end) AS 'Admins',
-                                                sum(case when UserGroup = '${userRoles.User}' then 1 else 0 end) AS 'Users',
-                                                sum(case when VerificationStatus = 0 then 1 else 0 end) AS 'Unverified',
-                                                sum(case when IsDisabled = 1 then 1 else 0 end) AS 'BlockedUsers',
-                                                sum(case when IsLoggedIn = 1 then 1 else 0 end) AS 'ActiveUsers'
-                                            FROM users;`,
+                                            `SELECT count(*) AS 'TotalUsers', sum(case when UserGroup = '${userRoles.Admin}' then 1 else 0 end) AS 'Admins', sum(case when UserGroup = '${userRoles.User}' then 1 else 0 end) AS 'Users', sum(case when VerificationStatus = 0 then 1 else 0 end) AS 'Unverified', sum(case when IsDisabled = 1 then 1 else 0 end) AS 'BlockedUsers', sum(case when IsLoggedIn = 1 then 1 else 0 end) AS 'ActiveUsers' FROM users;`,
                                             (stats => {
                                                 if (stats.status) {
                                                     Payload.success = true;

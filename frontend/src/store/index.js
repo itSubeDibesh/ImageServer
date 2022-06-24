@@ -21,6 +21,8 @@ export default createStore({
     user: {},
     loggedIn: false,
     token: null,
+    dashboardDetails: null,
+    usersList: []
   },
   getters: {
     loading(state) {
@@ -50,6 +52,12 @@ export default createStore({
     },
     getAlert(state) {
       return state.alert
+    },
+    getDashboardDetails(state) {
+      return state.dashboardDetails
+    },
+    getUsersList(state) {
+      return state.usersList
     }
   },
   mutations: {
@@ -91,6 +99,13 @@ export default createStore({
     // Alert Mutations
     setAlert(state, payload) {
       state.alert = payload
+    },
+    // Dashboard Mutation
+    setDashboard(state, payload) {
+      state.dashboardDetails = payload
+    },
+    setUserList(state, payload) {
+      state.usersList = payload
     }
   },
   actions: {

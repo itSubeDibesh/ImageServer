@@ -593,10 +593,7 @@ ImageRouter
                                 if (UserGroup == userRoles.Admin) {
                                     Database
                                         .executeQuery(
-                                            `SELECT 
-                                                SUM(FileSize) as "TotalStorage" ,
-                                                COUNT(*) AS 'TotalImages'
-                                            FROM image;`,
+                                            `SELECT SUM(FileSize) as "TotalStorage", COUNT(*) AS 'TotalImages' FROM image;`,
                                             (stats => {
                                                 if (stats.status) {
                                                     Payload.success = true;
@@ -773,10 +770,7 @@ ImageRouter
                                                 if (userExists.status && userExists.rows.length != 0) {
                                                     Database
                                                         .executeQuery(
-                                                            `SELECT 
-                                                                SUM(FileSize) as "TotalStorage" ,
-                                                                COUNT(*) AS 'TotalImages'
-                                                            FROM image WHERE UserId = ${request.body.UserId};`,
+                                                            `SELECT SUM(FileSize) as "TotalStorage", COUNT(*) AS 'TotalImages' FROM image WHERE UserId = ${request.body.UserId};`,
                                                             (stats => {
                                                                 if (stats.status) {
                                                                     Payload.success = true;

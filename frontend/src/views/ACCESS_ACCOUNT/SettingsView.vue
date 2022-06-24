@@ -79,7 +79,7 @@
                                 <div class="row">
                                     <div style="cursor:default"
                                         class="col-sm-12 col-md-12 col-lg-12 mb-3 ml-1 text-center">
-                                        <h4> <strong> <i class="fas fa-users-cog"></i>
+                                        <h4> <strong> <i class="fas fa-user"></i>
                                                 Basic Information</strong>
                                         </h4>
                                     </div>
