@@ -38,7 +38,14 @@
                                             v-for="(user, userIndex) in userList" :ref="'User_' + user.UserId"
                                             :key="userIndex" style="cursor:default">
                                             <div class="text-start">
-                                                <div class="fw-bold">{{ user.FullName }}</div>
+                                                <div class="fw-bold">{{ user.FullName }} &nbsp;
+                                                    <span class="badge"
+                                                        :class="user.IsDisabled ? 'bg-danger' : 'bg-success'">{{
+                                                                user.IsDisabled ?
+                                                                    "Disabled" :
+                                                                    "Enabled"
+                                                        }}</span>
+                                                </div>
                                                 <a :href="'mailto:' + user.Email" class="btn"> {{ user.Email }}</a>
                                             </div>
                                             <span class="badge bg-success">{{ sentenceCase(user.UserGroup) }}</span>
@@ -353,7 +360,6 @@ export default {
                             })
                     }
                 })
-            console.log(checked)
         },
         sendResetRequest(e) {
             e.preventDefault();
