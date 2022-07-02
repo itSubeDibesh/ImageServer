@@ -273,8 +273,8 @@ class Server {
      */
     async #activateHttp() {
         const
-            { XSS, Helmet, Cors, Session, Express, CookieParser, History } = Packages,
-            { SQLInjection, AccessControl, ReCaptcha, LoggedIn, LogoutHijack } = MiddleWare;
+            { XSS, Helmet, Cors, Express, CookieParser } = Packages,
+            { SQLInjection, ReCaptcha, LoggedIn, LogoutHijack } = MiddleWare;
         // Check if the Frontend build is completed
         this.server
             // Hiding the server information
@@ -294,37 +294,18 @@ class Server {
             // Setting Multer For Image Uploads
             .use(this.imageUploader.any());
 
+        // Using Helmet to configure security headers and CSP
+        if (this.preventCsp) this.server.use(Helmet());
         // Preventing Logout Session Hijacking
         if (this.preventLogoutSessionHijack) this.server.use(LogoutHijack());
         // Logging Middleware
         this.server.use(LoggedIn())
-        // Using Helmet to configure security headers and CSP
-        if(this.preventCsp) this.server.use(Helmet());
         // Preventing Sql Injection Attacks
         if (this.preventSqlInjection) this.server.use(SQLInjection());
         // Enabling ReCaptcha
         if (this.enableReCaptcha) this.server.use(await ReCaptcha());
         // Setting Request Limit
         if (this.setRequestLimit) this.server.use(this.requestLimit);
-        // Checking if its Production Mode and Production Files Exists
-        if (this.productionFileExists && !this.isDevelopmentMode) {
-            this.server
-                // Making SAP Routes Available using History API
-                .use(History({
-                    verbose: !this.isDevelopmentMode,
-                    rewrites: [
-                        // Rewriting API Routs for SAP -> Vue 
-                        {
-                            from: /^\/api\/.*$/,
-                            to: function (context) {
-                                return context.parsedUrl.path
-                            }
-                        }
-                    ]
-                }))
-                ;
-        } else
-            this.Logger.cli.warn(`🌎 Frontend not built. Make sure you are in production mode`);
         return this;
     }
 
@@ -358,6 +339,26 @@ class Server {
      * @returns {Server}
      */
     #handelHttpStatic() {
+        const { History } = Packages;
+        // Checking if its Production Mode and Production Files Exists
+        if (this.productionFileExists && !this.isDevelopmentMode) {
+            this.server
+                // Making SAP Routes Available using History API
+                .use(History({
+                    verbose: this.isDevelopmentMode,
+                    rewrites: [
+                        // Rewriting API Routs for SAP -> Vue 
+                        {
+                            from: /^\/api\/.*$/,
+                            to: function (context) {
+                                return context.parsedUrl.path
+                            }
+                        }
+                    ]
+                }))
+                ;
+        } else
+            this.Logger.cli.warn(`🌎 Frontend not built. Make sure you are in production mode`);
         // Configure other Frontend files
         if (this.productionFileExists && !this.isDevelopmentMode)
             this.server
