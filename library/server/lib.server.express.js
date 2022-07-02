@@ -174,6 +174,7 @@ class Server {
         this.preventSqlInjection = Config.server.preventions.sqLInjection;
         this.enableReCaptcha = Config.server.preventions.enableReCaptcha;
         this.preventLogoutSessionHijack = Config.server.preventions.logoutSessionHijack;
+        this.preventCsp = Config.server.preventions.preventCsp;
         this.setRequestLimit = false;
         if (Config.server.preventions.limitRequest.state) {
             const { request, periodInMs } = Config.server.preventions.limitRequest.limit
@@ -280,8 +281,6 @@ class Server {
             .disable('x-powered-by')
             // Preventing XSS Attacks
             .use(XSS())
-            // Using Helmet to configure security headers
-            .use(Helmet())
             // Setting UP Cors for Cross Origin Resource Sharing
             .use(Cors({
                 origin: `http://localhost:${this.PORT}`
@@ -299,6 +298,8 @@ class Server {
         if (this.preventLogoutSessionHijack) this.server.use(LogoutHijack());
         // Logging Middleware
         this.server.use(LoggedIn())
+        // Using Helmet to configure security headers and CSP
+        if(this.preventCsp) this.server.use(Helmet());
         // Preventing Sql Injection Attacks
         if (this.preventSqlInjection) this.server.use(SQLInjection());
         // Enabling ReCaptcha
@@ -310,7 +311,7 @@ class Server {
             this.server
                 // Making SAP Routes Available using History API
                 .use(History({
-                    verbose: this.isDevelopmentMode,
+                    verbose: !this.isDevelopmentMode,
                     rewrites: [
                         // Rewriting API Routs for SAP -> Vue 
                         {

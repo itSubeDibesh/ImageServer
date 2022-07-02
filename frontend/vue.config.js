@@ -14,6 +14,7 @@ module.exports = defineConfig({
       }
     }
   },
+  publicPath: process.env.WORK_ENV === 'production'? '/frontend/' : '/',
   pwa: {
     name: 'Image Server',
     shortName: 'Image',

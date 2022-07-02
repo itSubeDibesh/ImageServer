@@ -12,6 +12,7 @@
             "enableAccessControl": true,
             "enableReCaptcha": true,
             "logoutSessionHijack": true,
+            "preventCsp": false,
             "limitRequest": {
                 "state": false,
                 "limit": {

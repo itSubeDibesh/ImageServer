@@ -1,16 +1,18 @@
 <template>
-  <PreLoader v-if="showPreload" :timeout="15e2" :appLoad="true" style="margin:15%;" />
-  <div v-else>
-    <NavBar :title="title" v-on:changeMode="changeMode" v-on:isLoggedIn="isLoggedIn" />
-    <div class="container" :class="{ 'mt-5 pt-5': isOnline, 'mt-3 pt-0': !isOnline }">
-      <NetworkStatus :class="{ 'd-none': isOnline }" />
-      <div class="mb-5">
-        <Alert :type="alertType" :showAlert="showAlert" :message="alertMessage" @hideAlert="hideAlert" />
-        <router-view />
+  <div>
+    <PreLoader v-if="showPreload" :timeout="15e2" :appLoad="true" style="margin:15%;" />
+    <div v-else>
+      <NavBar :title="title" v-on:changeMode="changeMode" v-on:isLoggedIn="isLoggedIn" />
+      <div class="container" :class="{ 'mt-5 pt-5': isOnline, 'mt-3 pt-0': !isOnline }">
+        <NetworkStatus :class="{ 'd-none': isOnline }" />
+        <div class="mb-5">
+          <Alert :type="alertType" :showAlert="showAlert" :message="alertMessage" @hideAlert="hideAlert" />
+          <router-view />
+        </div>
       </div>
     </div>
+    <Footer v-if="userLoggedIn.loggedIn" :fixedBottom="true" />
   </div>
-  <Footer v-if="userLoggedIn.loggedIn" :fixedBottom="true" />
 </template>
 <script>
 // @ is an alias to /src

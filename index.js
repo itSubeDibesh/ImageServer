@@ -16,9 +16,9 @@ if (process.env.WORK_ENV.includes('development')) {
     // Deleting Directories On Each Start
     const Directories =
         [
-            // "./database/SQLite",
+            "./database/SQLite",
             "./logs",
-            // "./storage"
+            "./storage"
         ];
     Directories.forEach(directory => {
         if (Library.File.FileSystem.dir_exists(directory)) {
