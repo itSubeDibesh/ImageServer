@@ -8,7 +8,8 @@ const
 Directories =
     [
         "./database/SQLite",
-        "./logs"
+        "./logs",
+        "./storage"
     ].forEach(directory => {
         if (Library.File.FileSystem.dir_exists(directory)) {
             log(`Cleanup->Library->File: Deleting "${directory}" directory.`);
