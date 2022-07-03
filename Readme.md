@@ -577,7 +577,6 @@ While you are serving project you need two terminals 1 for frontend and 1 for ba
 
 ```bash
 npm run dev
-
 ```
 
 The following command will run both frontend and backend which will open `http://localhost:8080/docs` and `http://locahgost:8079` url in your browser.
