@@ -481,7 +481,7 @@ reCaptcha section holds following configuration
 jwt section holds following configuration
 
 ```json
-jwt": {
+"jwt": {
         "secret": "jwtSecret@Image _Sever.2022",
         "expiry": "2h",
         "appliedEndPoints": [
