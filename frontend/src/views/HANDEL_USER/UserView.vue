@@ -3,11 +3,6 @@
         <div class="row mb-3">
             <div class="col-md-4 col-sm-12 mb-3">
                 <div class="row">
-                    <div class="col-12  text-end  mb-3">
-                        <button class="btn btn-primary mb-2"> <i class="fas fa-user-shield"></i>
-                            Add
-                            Admin</button>
-                    </div>
                     <div class="col-12 mb-3">
                         <div class="card overflow-auto"
                             :class="{ 'text-light bg-dark border-light': isDarkMode, 'text-dark bg-light border-dark': !isDarkMode }"

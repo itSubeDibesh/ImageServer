@@ -48,7 +48,7 @@
     "nodemailer": "^6.7.5",
     "open-cli": "^7.0.1",
     "snipercode.filesystem": "^1.0.1",
-    "sqlite3": "^5.0.8",
+    "sqlite3": "^5.1.2",
     "xss-clean": "^0.1.1"
   },
   "devDependencies": {
